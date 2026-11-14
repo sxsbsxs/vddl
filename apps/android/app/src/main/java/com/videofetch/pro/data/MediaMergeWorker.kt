@@ -163,7 +163,7 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
             temp.delete()
             manifestFile?.delete()
             if (error.hasIoCause() && runAttemptCount < 5) return Result.retry()
-            jobFile.delete()
+            // Keep the local job specification so the user can retry a failed merge.
             return Result.failure(workDataOf(
                 KEY_ERROR to (error.message?.take(240) ?: "Could not merge video and audio"),
                 KEY_TITLE to title
