@@ -55,6 +55,8 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
             .setInputData(workDataOf(MediaMergeWorker.KEY_JOB_ID to jobId, MediaMergeWorker.KEY_TITLE to media.fileName))
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
             .addTag(MERGE_TAG)
+            .addTag("job:$jobId")
+            .addTag("title:${safeFileName(media.fileName)}")
             .build()
         return try {
             workManager.enqueue(request)
@@ -103,7 +105,7 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
             }
             records += LocalDownloadRecord(
                 "merge:${info.id}",
-                info.inputData.getString(MediaMergeWorker.KEY_TITLE) ?: "Video",
+                info.tags.firstOrNull { it.startsWith("title:") }?.removePrefix("title:") ?: "Video",
                 status, 0L, 0L,
                 info.progress.getInt(MediaMergeWorker.KEY_PROGRESS, 0)
                     .takeIf { status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING },
@@ -133,7 +135,7 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
         val info = runCatching { workManager.getWorkInfoById(uuid).get() }.getOrNull()
         workManager.cancelWorkById(uuid)
         val output = info?.outputData?.getString(MediaMergeWorker.KEY_OUTPUT_PATH)?.let(::File)
-        val jobId = info?.inputData?.getString(MediaMergeWorker.KEY_JOB_ID)
+        val jobId = info?.tags?.firstOrNull { it.startsWith("job:") }?.removePrefix("job:")
         val deletedOutput = output?.let { !it.exists() || it.delete() } ?: true
         val deletedSpec = jobId?.let { File(appContext.filesDir, "$JOBS_DIRECTORY/$it.json").delete() } ?: true
         return info != null && (deletedOutput || deletedSpec)
