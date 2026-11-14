@@ -82,7 +82,7 @@
     <string name="guest_mode_label">Guest mode · No sign-in required</string>
     <string name="parse_button">Parse</string>
     <string name="parsing_button">Parsing…</string>
-    <string name="parse_provider_unavailable">This platform does not have a parser integration yet, so video details are unavailable. No sign-in is required; supported platforms will work directly when integrated.</string>
+    <string name="parse_provider_unavailable">This link source is not supported yet. Check that it is from Bilibili, YouTube, or Niconico.</string>
     <string name="parse_failed">Could not parse this link. Check it and try again.</string>
     <string name="parse_incomplete_result">The parser did not return displayable video information.</string>
     <string name="available_formats">Available formats</string>
@@ -98,4 +98,31 @@
     <string name="niconico_download_note">Niconico details are available. Download requires a valid provider watch session and media stream; this version does not invent an unverified download URL.</string>
 
     <string name="provider_reported_formats">Available qualities reported by the platform</string>
+    <string name="home_hero_title">Turn video links into your local library</string>
+    <string name="home_hero_subtitle">Paste a link to preview video details and available quality. No account registration required.</string>
+    <string name="home_local_processing">On-device first · Cookies stay on your device</string>
+    <string name="home_link_title">Start parsing</string>
+    <string name="home_link_subtitle">Paste a Bilibili, YouTube, or Niconico video link</string>
+    <string name="home_link_helper">Share a video link from another app, or use the paste icon on the right.</string>
+    <string name="home_platform_title">Connected platforms</string>
+    <string name="home_platform_subtitle">The matching parser is selected automatically</string>
+    <string name="clear_button">Clear link</string>
+    <string name="parsing_hint">Reading title, cover, and provider information</string>
+    <string name="download_ready">Download ready</string>
+    <string name="metadata_only">Preview only</string>
+    <string name="downloads_subtitle">Track progress, open files, or remove tasks</string>
+    <string name="active_downloads">Active</string>
+    <string name="completed_downloads">Completed</string>
+    <string name="filter_all">All</string>
+    <string name="filter_active">Active</string>
+    <string name="filter_done">Completed</string>
+    <string name="download_removed">Download task removed</string>
+    <string name="download_remove_failed">Could not remove the task. Try again.</string>
+    <string name="download_preparing">Waiting for the download service</string>
+    <string name="download_complete_hint">File is saved in the local VideoFetch Pro folder</string>
+    <string name="remove_button">Remove</string>
+    <string name="settings_subtitle">Quality preferences and local platform sessions</string>
+    <string name="no_cookie_saved">No local Cookie is saved for this platform</string>
+    <string name="about_title">About</string>
+    <string name="about_body">VideoFetch Pro · On-device first · Multilingual</string>
 </resources>

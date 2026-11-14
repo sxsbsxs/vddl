@@ -82,7 +82,7 @@
     <string name="guest_mode_label">游客模式 · 无需登录</string>
     <string name="parse_button">解析</string>
     <string name="parsing_button">正在解析…</string>
-    <string name="parse_provider_unavailable">这个平台暂未接入解析适配器，暂时无法获取视频信息。你无需登录；支持的平台接入后可直接解析。</string>
+    <string name="parse_provider_unavailable">暂不支持这个链接来源，请确认链接属于 B站、YouTube 或 Niconico。</string>
     <string name="parse_failed">解析失败，请检查链接后重试。</string>
     <string name="parse_incomplete_result">解析器没有返回可展示的视频信息。</string>
     <string name="available_formats">可用格式</string>
@@ -98,4 +98,31 @@
     <string name="niconico_download_note">已获取 Niconico 视频信息。下载需要平台提供可用的观看会话和媒体流；当前版本暂不生成未经验证的下载地址。</string>
 
     <string name="provider_reported_formats">平台返回的可用清晰度</string>
+    <string name="home_hero_title">视频链接，轻松变成本地收藏</string>
+    <string name="home_hero_subtitle">粘贴链接，查看视频信息与可用画质。无需注册账号。</string>
+    <string name="home_local_processing">优先在本机解析 · Cookie 不上传</string>
+    <string name="home_link_title">开始解析</string>
+    <string name="home_link_subtitle">粘贴 B站、YouTube 或 Niconico 视频链接</string>
+    <string name="home_link_helper">支持从其他应用直接分享视频链接，也可以使用右侧按钮粘贴。</string>
+    <string name="home_platform_title">已接入平台</string>
+    <string name="home_platform_subtitle">识别平台后自动选择对应解析方式</string>
+    <string name="clear_button">清空链接</string>
+    <string name="parsing_hint">正在读取标题、封面和平台提供的信息</string>
+    <string name="download_ready">可下载</string>
+    <string name="metadata_only">信息预览</string>
+    <string name="downloads_subtitle">查看进度、打开文件或移除任务</string>
+    <string name="active_downloads">进行中</string>
+    <string name="completed_downloads">已完成</string>
+    <string name="filter_all">全部</string>
+    <string name="filter_active">进行中</string>
+    <string name="filter_done">已完成</string>
+    <string name="download_removed">下载任务已移除</string>
+    <string name="download_remove_failed">移除失败，请稍后重试</string>
+    <string name="download_preparing">正在等待下载服务响应</string>
+    <string name="download_complete_hint">文件已保存在 VideoFetch Pro 本机目录</string>
+    <string name="remove_button">移除</string>
+    <string name="settings_subtitle">画质偏好与本机平台会话</string>
+    <string name="no_cookie_saved">此平台尚未保存本机 Cookie</string>
+    <string name="about_title">关于应用</string>
+    <string name="about_body">VideoFetch Pro · 本机解析优先 · 多语言支持</string>
 </resources>

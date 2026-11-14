@@ -82,7 +82,7 @@
     <string name="guest_mode_label">ゲストモード · ログイン不要</string>
     <string name="parse_button">解析</string>
     <string name="parsing_button">解析中…</string>
-    <string name="parse_provider_unavailable">このプラットフォームの解析連携はまだありません。ログインは不要です。対応プラットフォームの連携後、そのまま解析できます。</string>
+    <string name="parse_provider_unavailable">このリンク元にはまだ対応していません。Bilibili、YouTube、Niconico のリンクか確認してください。</string>
     <string name="parse_failed">リンクを解析できませんでした。確認して再試行してください。</string>
     <string name="parse_incomplete_result">解析結果に表示可能な動画情報がありません。</string>
     <string name="available_formats">利用可能な形式</string>
@@ -98,4 +98,31 @@
     <string name="niconico_download_note">Niconico の動画情報を取得しました。ダウンロードには有効な視聴セッションとメディアストリームが必要です。未検証の URL は生成しません。</string>
 
     <string name="provider_reported_formats">プラットフォームが返した利用可能な画質</string>
+    <string name="home_hero_title">動画リンクをかんたんにローカル保存</string>
+    <string name="home_hero_subtitle">リンクを貼り付けて、動画情報と利用可能な画質を確認できます。登録は不要です。</string>
+    <string name="home_local_processing">端末内で優先処理 · Cookie は端末内に保存</string>
+    <string name="home_link_title">解析を開始</string>
+    <string name="home_link_subtitle">Bilibili、YouTube、Niconico の動画リンクを貼り付け</string>
+    <string name="home_link_helper">他のアプリからリンクを共有するか、右側の貼り付けボタンを使用してください。</string>
+    <string name="home_platform_title">対応プラットフォーム</string>
+    <string name="home_platform_subtitle">リンクからプラットフォームを自動判定します</string>
+    <string name="clear_button">リンクをクリア</string>
+    <string name="parsing_hint">タイトル、サムネイル、プラットフォーム情報を取得しています</string>
+    <string name="download_ready">ダウンロード可能</string>
+    <string name="metadata_only">情報プレビュー</string>
+    <string name="downloads_subtitle">進行状況の確認、ファイルを開く、タスクの削除</string>
+    <string name="active_downloads">進行中</string>
+    <string name="completed_downloads">完了</string>
+    <string name="filter_all">すべて</string>
+    <string name="filter_active">進行中</string>
+    <string name="filter_done">完了</string>
+    <string name="download_removed">ダウンロードタスクを削除しました</string>
+    <string name="download_remove_failed">削除できませんでした。再試行してください</string>
+    <string name="download_preparing">ダウンロードサービスの応答を待っています</string>
+    <string name="download_complete_hint">VideoFetch Pro の端末内フォルダーに保存しました</string>
+    <string name="remove_button">削除</string>
+    <string name="settings_subtitle">画質設定と端末内プラットフォームセッション</string>
+    <string name="no_cookie_saved">このプラットフォームの Cookie は端末に保存されていません</string>
+    <string name="about_title">アプリについて</string>
+    <string name="about_body">VideoFetch Pro · 端末内処理を優先 · 多言語対応</string>
 </resources>

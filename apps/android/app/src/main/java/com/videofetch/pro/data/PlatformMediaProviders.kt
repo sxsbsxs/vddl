@@ -163,7 +163,6 @@ internal object PlatformMediaProviders {
             return when {
                 height >= 4320 -> 127
                 height >= 2160 -> 120
-                height >= 1440 -> 116
                 height >= 1080 -> 80
                 height >= 720 -> 64
                 height >= 480 -> 32
