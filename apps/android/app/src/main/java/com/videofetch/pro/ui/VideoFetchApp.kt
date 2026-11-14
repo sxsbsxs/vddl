@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.videofetch.pro.BuildConfig
 import com.videofetch.pro.R
+import com.videofetch.pro.core.CookieProviderDetector
 import com.videofetch.pro.core.SourceUrlValidator
 import com.videofetch.pro.data.EncryptedLocalSessionStore
 import com.videofetch.pro.data.LocalDownloadManager
@@ -538,89 +539,120 @@ private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemo
 private fun SettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val sessions = remember(context) { EncryptedLocalSessionStore(context) }
-    var providerId by rememberSaveable { mutableStateOf("bilibili") }
-    val cookieHost = if (providerId == "niconico") "www.nicovideo.jp" else "api.bilibili.com"
     var cookie by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("") }
-    var savedProfile by remember(providerId) { mutableStateOf(sessions.profile(providerId)) }
-    var quality by remember { mutableStateOf(VideoQualityPreferenceStore(context).get()) }
-    var qualityExpanded by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
-        PageTopBar(stringResource(R.string.settings_title), stringResource(R.string.settings_subtitle), onBack)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 30.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            SettingsSection(stringResource(R.string.quality_title), stringResource(R.string.quality_explainer)) {
-                OutlinedButton(onClick = { qualityExpanded = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink)) {
-                    Text(stringResource(quality.labelRes), modifier = Modifier.weight(1f))
-                    Text("⌄", color = Violet, fontSize = 17.sp)
-                }
-                DropdownMenu(expanded = qualityExpanded, onDismissRequest = { qualityExpanded = false }) {
-                    VideoQualityPreference.entries.forEach { option ->
-                        DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = {
-                            quality = option
-                            VideoQualityPreferenceStore(context).set(option)
-                            qualityExpanded = false
-                        })
-                    }
-                }
-            }
-            SettingsSection(stringResource(R.string.local_session_title), stringResource(R.string.local_session_explainer)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = providerId == "bilibili", onClick = { providerId = "bilibili"; cookie = ""; status = "" }, label = { Text("Bilibili") })
-                    FilterChip(selected = providerId == "niconico", onClick = { providerId = "niconico"; cookie = ""; status = "" }, label = { Text("Niconico") })
-                }
-                Surface(color = Color(0xFFF3F4F9), shape = RoundedCornerShape(12.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(stringResource(R.string.cookie_host_label), color = Muted, style = MaterialTheme.typography.labelSmall)
-                        Text(cookieHost, color = Ink, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                OutlinedTextField(
-                    value = cookie,
-                    onValueChange = { cookie = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.cookie_value_label)) },
-                    placeholder = { Text(if (providerId == "bilibili") "SESSDATA=…; bili_jct=…" else "user_session=…") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(14.dp)
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        PageTopBar(
+            stringResource(R.string.settings_title),
+            stringResource(R.string.settings_subtitle),
+            onBack
+        )
+        Column(
+            Modifier.weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Column(
+                    Modifier.fillMaxWidth().padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.cookie_simple_title),
+                        color = Ink,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Text(
+                        stringResource(R.string.cookie_simple_description),
+                        color = Muted,
+                        style = MaterialTheme.typography.bodySmall,
+                        lineHeight = 19.sp
+                    )
+                    OutlinedTextField(
+                        value = cookie,
+                        onValueChange = { cookie = it; status = "" },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.cookie_simple_label)) },
+                        placeholder = { Text(stringResource(R.string.cookie_simple_placeholder)) },
+                        singleLine = false,
+                        minLines = 3,
+                        maxLines = 5,
+                        visualTransformation = PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Violet,
+                            unfocusedBorderColor = Line,
+                            focusedContainerColor = Color(0xFFFBFBFE),
+                            unfocusedContainerColor = Color(0xFFFBFBFE)
+                        )
+                    )
                     Button(
                         onClick = {
-                            runCatching { sessions.saveCookie(providerId, cookieHost, cookie) }
-                                .onSuccess {
-                                    savedProfile = sessions.profile(providerId)
+                            val target = CookieProviderDetector.detect(cookie)
+                            if (target == null) {
+                                status = context.getString(R.string.cookie_auto_detect_failed)
+                            } else {
+                                saving = true
+                                runCatching {
+                                    sessions.saveCookie(target.providerId, target.host, cookie)
+                                }.onSuccess {
                                     cookie = ""
-                                    status = context.getString(R.string.local_session_save_success)
+                                    status = context.getString(
+                                        R.string.cookie_auto_saved,
+                                        target.displayName
+                                    )
+                                }.onFailure {
+                                    status = context.getString(R.string.local_session_save_error)
                                 }
-                                .onFailure { status = context.getString(R.string.local_session_save_error) }
+                                saving = false
+                            }
                         },
-                        enabled = cookie.isNotBlank(),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) { Text(stringResource(R.string.save_local_session)) }
-                    OutlinedButton(
-                        onClick = {
-                            runCatching { sessions.clearCookie(providerId) }
-                            savedProfile = null
-                            cookie = ""
-                            status = context.getString(R.string.local_session_cleared)
-                        },
-                        enabled = savedProfile != null,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) { Text(stringResource(R.string.clear_local_session)) }
+                        enabled = cookie.isNotBlank() && !saving,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Violet)
+                    ) {
+                        if (saving) {
+                            CircularProgressIndicator(
+                                Modifier.size(19.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                stringResource(R.string.cookie_auto_save_button),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    if (status.isNotBlank()) {
+                        Text(
+                            status,
+                            color = if (status == context.getString(R.string.cookie_auto_detect_failed)) {
+                                Color(0xFFB33D3D)
+                            } else {
+                                Teal
+                            },
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
-                savedProfile?.let { Text(stringResource(R.string.local_session_saved, it.host), color = Teal, style = MaterialTheme.typography.labelSmall) }
-                    ?: Text(stringResource(R.string.no_cookie_saved), color = Muted, style = MaterialTheme.typography.labelSmall)
-                if (status.isNotBlank()) Text(status, color = Violet, style = MaterialTheme.typography.bodySmall)
-                Text(stringResource(R.string.cookie_security_note), color = Muted, style = MaterialTheme.typography.bodySmall, lineHeight = 18.sp)
             }
-            SettingsSection(stringResource(R.string.about_title), stringResource(R.string.about_body)) {
-                Text(stringResource(R.string.app_build_version, BuildConfig.VERSION_NAME), color = Muted, style = MaterialTheme.typography.labelSmall)
-                Text(BuildConfig.API_BASE_URL, color = Muted, style = MaterialTheme.typography.labelSmall)
-            }
+            Text(
+                stringResource(R.string.cookie_simple_note),
+                color = Muted,
+                style = MaterialTheme.typography.bodySmall,
+                lineHeight = 18.sp,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
     }
 }

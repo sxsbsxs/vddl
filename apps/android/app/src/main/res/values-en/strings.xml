@@ -125,4 +125,13 @@
     <string name="no_cookie_saved">No local Cookie is saved for this platform</string>
     <string name="about_title">About</string>
     <string name="about_body">VideoFetch Pro · On-device first · Multilingual</string>
+    <string name="settings_subtitle">Paste a Cookie and the app detects its platform</string>
+    <string name="cookie_simple_title">Add platform Cookie</string>
+    <string name="cookie_simple_description">Paste your Cookie below. VideoFetch Pro will recognize the platform and save it securely.</string>
+    <string name="cookie_simple_label">Cookie</string>
+    <string name="cookie_simple_placeholder">Paste Cookie here</string>
+    <string name="cookie_auto_save_button">Detect and save</string>
+    <string name="cookie_auto_saved">Detected %1$s. Cookie saved securely on this device.</string>
+    <string name="cookie_auto_detect_failed">Could not recognize it. Paste a complete Bilibili or Niconico Cookie.</string>
+    <string name="cookie_simple_note">Public YouTube video previews do not need a Cookie. Cookies stay on this device and are never uploaded to the server.</string>
 </resources>

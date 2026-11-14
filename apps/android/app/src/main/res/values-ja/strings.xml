@@ -125,4 +125,13 @@
     <string name="no_cookie_saved">このプラットフォームの Cookie は端末に保存されていません</string>
     <string name="about_title">アプリについて</string>
     <string name="about_body">VideoFetch Pro · 端末内処理を優先 · 多言語対応</string>
+    <string name="settings_subtitle">Cookie を貼り付けるとプラットフォームを自動判定</string>
+    <string name="cookie_simple_title">プラットフォーム Cookie を追加</string>
+    <string name="cookie_simple_description">下に Cookie を貼り付けてください。VideoFetch Pro がプラットフォームを自動判定し、安全に保存します。</string>
+    <string name="cookie_simple_label">Cookie</string>
+    <string name="cookie_simple_placeholder">ここに Cookie を貼り付け</string>
+    <string name="cookie_auto_save_button">自動判定して保存</string>
+    <string name="cookie_auto_saved">%1$s を検出しました。Cookie を端末に安全に保存しました。</string>
+    <string name="cookie_auto_detect_failed">判定できませんでした。Bilibili または Niconico の Cookie 全体を貼り付けてください。</string>
+    <string name="cookie_simple_note">YouTube の公開動画プレビューに Cookie は不要です。Cookie はこの端末内に保存され、サーバーには送信されません。</string>
 </resources>
