@@ -28,5 +28,12 @@ The release build uses an HTTPS placeholder endpoint. Set the production API URL
 - HTTPS URL syntax checks on-device
 - Retrofit API interface for task creation and task listing
 
+## Local session and quality settings
+- Preferred quality (best available, 2160p, 1440p, 1080p, 720p, or 480p) is stored locally.
+- A user may paste a single Cookie request header for a provider and exact hostname.
+- Cookie values are encrypted with AES-GCM using a key held by Android Keystore.
+- A Cookie is returned only to a provider adapter that explicitly allow-lists the exact HTTPS hostname. Cookies are never sent to the VideoFetch Pro API.
+- The Downloads screen reads device-local Android DownloadManager records. Downloads are stored in the app-specific external files directory.
+
 ## Deliberate integration boundary
-The backend currently has only a temporary bootstrap API token, not user sign-in or per-user credentials. The Android APK must never contain that shared administrator token. Task submission remains a UI placeholder until server-side account authentication and individual API credentials are implemented. Provider registry is also intentionally empty until an authorized adapter has been reviewed.
+The backend currently has only a temporary bootstrap API token, not user sign-in or per-user credentials. The Android APK must never contain that shared administrator token. Task submission remains a UI placeholder until server-side account authentication and individual API credentials are implemented. Provider registry is also intentionally empty until an authorized adapter has been reviewed. The local Cookie vault and downloader are infrastructure only; no platform adapter currently uses them, and no quality upgrade is performed until a supported provider resolver is implemented.

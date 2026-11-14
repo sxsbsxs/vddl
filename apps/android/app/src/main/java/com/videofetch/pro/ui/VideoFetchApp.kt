@@ -1,7 +1,9 @@
 package com.videofetch.pro.ui
 
+import android.app.DownloadManager
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,12 +30,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.videofetch.pro.BuildConfig
 import com.videofetch.pro.R
 import com.videofetch.pro.core.SourceUrlValidator
+import com.videofetch.pro.data.EncryptedLocalSessionStore
+import com.videofetch.pro.data.LocalDownloadManager
+import com.videofetch.pro.data.LocalDownloadRecord
+import com.videofetch.pro.data.VideoQualityPreference
+import com.videofetch.pro.data.VideoQualityPreferenceStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private enum class AppTab { HOME, TASKS, DOWNLOADS, SETTINGS }
 private data class TabItem(val tab: AppTab, val labelRes: Int, val icon: ImageVector)
@@ -68,9 +78,7 @@ fun VideoFetchApp(sharedText: String? = null) {
             }
         }
     ) { padding ->
-        Box(
-            Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)
-        ) {
+        Box(Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
             when (selectedTab) {
                 AppTab.HOME -> HomeScreen(
                     sourceUrl = sourceUrl,
@@ -95,12 +103,7 @@ fun VideoFetchApp(sharedText: String? = null) {
                     stringResource(R.string.tasks_empty_body),
                     Icons.Filled.History
                 )
-                AppTab.DOWNLOADS -> EmptyStateScreen(
-                    stringResource(R.string.downloads_title),
-                    stringResource(R.string.downloads_empty),
-                    stringResource(R.string.downloads_empty_body),
-                    Icons.Filled.VideoLibrary
-                )
+                AppTab.DOWNLOADS -> DownloadsScreen()
                 AppTab.SETTINGS -> SettingsScreen()
             }
         }
@@ -186,7 +189,7 @@ private fun EmptyStateScreen(title: String, headline: String, body: String, icon
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        if (title.isNotBlank()) Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(52.dp))
         Surface(Modifier.size(76.dp).align(Alignment.CenterHorizontally), shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.09f)) {
             Box(contentAlignment = Alignment.Center) {
@@ -199,12 +202,196 @@ private fun EmptyStateScreen(title: String, headline: String, body: String, icon
 }
 
 @Composable
+private fun DownloadsScreen() {
+    val context = LocalContext.current
+    val downloadManager = remember(context) {
+        LocalDownloadManager(context, EncryptedLocalSessionStore(context))
+    }
+    var records by remember { mutableStateOf<List<LocalDownloadRecord>>(emptyList()) }
+    var refreshKey by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(refreshKey) {
+        records = withContext(Dispatchers.IO) { downloadManager.list() }
+    }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.downloads_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = { refreshKey++ }) { Text(stringResource(R.string.refresh_button)) }
+        }
+        if (records.isEmpty()) {
+            EmptyStateScreen("", stringResource(R.string.downloads_empty), stringResource(R.string.downloads_empty_body), Icons.Filled.VideoLibrary)
+        } else {
+            records.forEach { record ->
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(record.title, fontWeight = FontWeight.SemiBold)
+                        Text(downloadStatusText(record.status), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f))
+                        if (record.totalBytes > 0) {
+                            val progress = record.downloadedBytes.toFloat() / record.totalBytes.toFloat()
+                            LinearProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                            Text((progress * 100).toInt().toString() + "%", style = MaterialTheme.typography.labelSmall)
+                        }
+                        if (record.status == DownloadManager.STATUS_SUCCESSFUL) {
+                            Button(onClick = {
+                                val uri = downloadManager.uriFor(record.id)
+                                if (uri != null) {
+                                    val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "video/*")
+                                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    runCatching { context.startActivity(intent) }
+                                }
+                            }) { Text(stringResource(R.string.open_file_button)) }
+                        }
+                    }
+                }
+            }
+        }
+        Text(stringResource(R.string.local_download_location), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.58f))
+    }
+}
+
+@Composable
+private fun downloadStatusText(status: Int): String = stringResource(
+    when (status) {
+        DownloadManager.STATUS_PENDING -> R.string.download_status_pending
+        DownloadManager.STATUS_RUNNING -> R.string.download_status_running
+        DownloadManager.STATUS_PAUSED -> R.string.download_status_paused
+        DownloadManager.STATUS_SUCCESSFUL -> R.string.download_status_success
+        DownloadManager.STATUS_FAILED -> R.string.download_status_failed
+        else -> R.string.download_status_unknown
+    }
+)
+
+@Composable
 private fun SettingsScreen() {
+    val context = LocalContext.current
+    val sessions = remember(context) { EncryptedLocalSessionStore(context) }
+    val qualityStore = remember(context) { VideoQualityPreferenceStore(context) }
+    var qualityValue by rememberSaveable { mutableStateOf(qualityStore.get().storageValue) }
+    var qualityMenuExpanded by remember { mutableStateOf(false) }
+    val quality = VideoQualityPreference.fromStorage(qualityValue)
+
+    var providerId by rememberSaveable { mutableStateOf("my_platform") }
+    var host by rememberSaveable { mutableStateOf("") }
+    var cookieHeader by remember { mutableStateOf("") }
+    var hasSavedCookie by remember { mutableStateOf(false) }
+    var savedHost by remember { mutableStateOf<String?>(null) }
+    var sessionMessage by remember { mutableStateOf("") }
+
+    LaunchedEffect(providerId) {
+        val profile = runCatching { sessions.profile(providerId) }.getOrNull()
+        hasSavedCookie = profile != null
+        savedHost = profile?.host
+    }
+
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.quality_title), fontWeight = FontWeight.SemiBold)
+                Box {
+                    OutlinedButton(onClick = { qualityMenuExpanded = true }) {
+                        Text(stringResource(quality.labelRes))
+                    }
+                    DropdownMenu(expanded = qualityMenuExpanded, onDismissRequest = { qualityMenuExpanded = false }) {
+                        VideoQualityPreference.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(option.labelRes)) },
+                                onClick = {
+                                    qualityValue = option.storageValue
+                                    qualityStore.set(option)
+                                    qualityMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Text(stringResource(R.string.quality_explainer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f))
+            }
+        }
+
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.local_session_title), fontWeight = FontWeight.SemiBold)
+                }
+                Text(stringResource(R.string.local_session_explainer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f))
+                OutlinedTextField(
+                    value = providerId,
+                    onValueChange = { providerId = it.lowercase(); sessionMessage = "" },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.provider_id_label)) },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = host,
+                    onValueChange = { host = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.cookie_host_label)) },
+                    placeholder = { Text("www.example.com") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
+                )
+                OutlinedTextField(
+                    value = cookieHeader,
+                    onValueChange = { cookieHeader = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.cookie_value_label)) },
+                    placeholder = { Text("session=value; token=value") },
+                    minLines = 3,
+                    maxLines = 5,
+                    visualTransformation = PasswordVisualTransformation()
+                )
+                if (hasSavedCookie) {
+                    Text(stringResource(R.string.local_session_saved, savedHost.orEmpty()), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                }
+                if (sessionMessage.isNotBlank()) {
+                    Text(sessionMessage, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                }
+                Button(
+                    onClick = {
+                        val result = runCatching { sessions.saveCookie(providerId, host, cookieHeader) }
+                        if (result.isSuccess) {
+                            cookieHeader = ""
+                            hasSavedCookie = true
+                            savedHost = runCatching { sessions.profile(providerId)?.host }.getOrNull()
+                            sessionMessage = context.getString(R.string.local_session_save_success)
+                        } else {
+                            sessionMessage = result.exceptionOrNull()?.message ?: context.getString(R.string.local_session_save_error)
+                        }
+                    },
+                    enabled = providerId.isNotBlank() && host.isNotBlank() && cookieHeader.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.save_local_session)) }
+                OutlinedButton(
+                    onClick = {
+                        runCatching { sessions.clearCookie(providerId) }
+                        hasSavedCookie = false
+                        savedHost = null
+                        cookieHeader = ""
+                        sessionMessage = context.getString(R.string.local_session_cleared)
+                    },
+                    enabled = hasSavedCookie,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.clear_local_session)) }
+                Text(stringResource(R.string.cookie_security_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.settings_server), fontWeight = FontWeight.SemiBold)
@@ -214,18 +401,8 @@ private fun SettingsScreen() {
         }
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.settings_account), fontWeight = FontWeight.SemiBold)
-                }
-                Text(stringResource(R.string.settings_account_body), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f))
-            }
-        }
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.settings_version), fontWeight = FontWeight.SemiBold)
-                Text("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f))
+                Text(BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f))
                 HorizontalDivider()
                 Text(stringResource(R.string.status_unconnected), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f), style = MaterialTheme.typography.bodySmall)
             }
