@@ -78,4 +78,20 @@
     <string name="quality_144">144p</string>
     <string name="quality_format_note">解像度は上限フィルターです。フレームレート（30/60/120fps）、HDR/SDR、コーデック（AV1/VP9/H.264）、音声トラックは、プロバイダーアダプターが実際の形式を返した後に個別表示します。存在しない選択肢は表示しません。</string>
 
+
+    <string name="guest_mode_label">ゲストモード · ログイン不要</string>
+    <string name="parse_button">解析</string>
+    <string name="parsing_button">解析中…</string>
+    <string name="parse_provider_unavailable">このプラットフォームの解析連携はまだありません。ログインは不要です。対応プラットフォームの連携後、そのまま解析できます。</string>
+    <string name="parse_failed">リンクを解析できませんでした。確認して再試行してください。</string>
+    <string name="parse_incomplete_result">解析結果に表示可能な動画情報がありません。</string>
+    <string name="available_formats">利用可能な形式</string>
+    <string name="no_download_formats">動画情報は取得しましたが、ダウンロード可能な形式はまだありません。</string>
+    <string name="select_format">画質を選択</string>
+    <string name="download_selected_format">選択した形式をダウンロード</string>
+    <string name="download_added">ダウンロード一覧に追加しました</string>
+    <string name="download_enqueue_failed">ダウンロードを開始できません。形式がまだ利用可能か確認してください。</string>
+    <string name="back_button">戻る</string>
+    <string name="app_build_version">バージョン %1$s</string>
+
 </resources>

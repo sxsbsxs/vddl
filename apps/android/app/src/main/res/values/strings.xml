@@ -78,4 +78,20 @@
     <string name="quality_144">144p</string>
     <string name="quality_format_note">分辨率是筛选上限；帧率（如 30/60/120fps）、HDR/SDR、视频编码（AV1/VP9/H.264）和音轨会在平台适配器返回真实格式后单独列出，不会虚构平台没有提供的选项。</string>
 
+
+    <string name="guest_mode_label">游客模式 · 无需登录</string>
+    <string name="parse_button">解析</string>
+    <string name="parsing_button">正在解析…</string>
+    <string name="parse_provider_unavailable">这个平台暂未接入解析适配器，暂时无法获取视频信息。你无需登录；支持的平台接入后可直接解析。</string>
+    <string name="parse_failed">解析失败，请检查链接后重试。</string>
+    <string name="parse_incomplete_result">解析器没有返回可展示的视频信息。</string>
+    <string name="available_formats">可用格式</string>
+    <string name="no_download_formats">已返回视频信息，但暂时没有可下载的格式。</string>
+    <string name="select_format">选择画质</string>
+    <string name="download_selected_format">下载所选格式</string>
+    <string name="download_added">已加入下载列表</string>
+    <string name="download_enqueue_failed">加入下载失败，请检查该格式是否仍然有效。</string>
+    <string name="back_button">返回</string>
+    <string name="app_build_version">版本 %1$s</string>
+
 </resources>

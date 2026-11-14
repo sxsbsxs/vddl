@@ -78,4 +78,20 @@
     <string name="quality_144">144p</string>
     <string name="quality_format_note">Resolution is a ceiling filter. Frame rates (30/60/120 fps), HDR/SDR, codecs (AV1/VP9/H.264), and audio tracks will be listed separately once a provider adapter reports the actual formats; unavailable options will never be fabricated.</string>
 
+
+    <string name="guest_mode_label">Guest mode · No sign-in required</string>
+    <string name="parse_button">Parse</string>
+    <string name="parsing_button">Parsing…</string>
+    <string name="parse_provider_unavailable">This platform does not have a parser integration yet, so video details are unavailable. No sign-in is required; supported platforms will work directly when integrated.</string>
+    <string name="parse_failed">Could not parse this link. Check it and try again.</string>
+    <string name="parse_incomplete_result">The parser did not return displayable video information.</string>
+    <string name="available_formats">Available formats</string>
+    <string name="no_download_formats">Video information was returned, but no downloadable formats are available yet.</string>
+    <string name="select_format">Choose quality</string>
+    <string name="download_selected_format">Download selected format</string>
+    <string name="download_added">Added to downloads</string>
+    <string name="download_enqueue_failed">Could not start the download. Check whether this format is still available.</string>
+    <string name="back_button">Back</string>
+    <string name="app_build_version">Version %1$s</string>
+
 </resources>
