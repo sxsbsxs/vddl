@@ -66,7 +66,7 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.dash)
     implementation(libs.media3.transformer)
-    implementation(libs.work.runtime.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
