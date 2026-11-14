@@ -4,7 +4,7 @@ This is the primary end-user client. It is a native Android application built wi
 
 ## Requirements
 - Android Studio with JDK 17 support
-- Android SDK Platform 37
+- Android SDK Platform 36
 - Gradle 9.6.0
 - An Android device or emulator running Android 8.0 (API 26) or newer
 

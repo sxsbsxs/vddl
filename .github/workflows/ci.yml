@@ -56,7 +56,7 @@ jobs:
         with:
           gradle-version: "9.6.0"
       - name: Install Android SDK
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Build and test Android app
         run: |
           gradle -p apps/android --no-daemon assembleDebug testDebugUnitTest
