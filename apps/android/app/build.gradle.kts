@@ -71,7 +71,7 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.work.runtime.ktx)
+    implementation("androidx.work:work-runtime-ktx:2.12.0")
 
     testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)
