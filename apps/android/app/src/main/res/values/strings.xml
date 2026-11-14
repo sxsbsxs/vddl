@@ -1,4 +1,5 @@
 <resources>
+    <string name="settings_subtitle">粘贴 Cookie，自动识别平台</string>
     <string name="app_name">VideoFetch Pro</string>
     <string name="tab_home">首页</string>
     <string name="tab_tasks">任务</string>
@@ -121,11 +122,9 @@
     <string name="download_preparing">正在等待下载服务响应</string>
     <string name="download_complete_hint">文件已保存在 VideoFetch Pro 本机目录</string>
     <string name="remove_button">移除</string>
-    <string name="settings_subtitle">画质偏好与本机平台会话</string>
     <string name="no_cookie_saved">此平台尚未保存本机 Cookie</string>
     <string name="about_title">关于应用</string>
     <string name="about_body">VideoFetch Pro · 本机解析优先 · 多语言支持</string>
-    <string name="settings_subtitle">粘贴 Cookie，自动识别平台</string>
     <string name="cookie_simple_title">添加平台 Cookie</string>
     <string name="cookie_simple_description">把 Cookie 粘贴到下面，VideoFetch Pro 会自动识别平台并安全保存。</string>
     <string name="cookie_simple_label">Cookie</string>

@@ -1,4 +1,5 @@
 <resources>
+    <string name="settings_subtitle">Cookie を貼り付けるとプラットフォームを自動判定</string>
     <string name="app_name">VideoFetch Pro</string>
     <string name="tab_home">ホーム</string>
     <string name="tab_tasks">タスク</string>
@@ -121,11 +122,9 @@
     <string name="download_preparing">ダウンロードサービスの応答を待っています</string>
     <string name="download_complete_hint">VideoFetch Pro の端末内フォルダーに保存しました</string>
     <string name="remove_button">削除</string>
-    <string name="settings_subtitle">画質設定と端末内プラットフォームセッション</string>
     <string name="no_cookie_saved">このプラットフォームの Cookie は端末に保存されていません</string>
     <string name="about_title">アプリについて</string>
     <string name="about_body">VideoFetch Pro · 端末内処理を優先 · 多言語対応</string>
-    <string name="settings_subtitle">Cookie を貼り付けるとプラットフォームを自動判定</string>
     <string name="cookie_simple_title">プラットフォーム Cookie を追加</string>
     <string name="cookie_simple_description">下に Cookie を貼り付けてください。VideoFetch Pro がプラットフォームを自動判定し、安全に保存します。</string>
     <string name="cookie_simple_label">Cookie</string>
