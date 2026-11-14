@@ -16,24 +16,17 @@ gradle -p apps/android assembleDebug
 gradle -p apps/android testDebugUnitTest
 ```
 
-The debug API endpoint defaults to `http://10.0.2.2:8000/`, which reaches the host machine from the Android emulator. A physical device needs a reachable development host or an HTTPS endpoint configured in the app build.
+## Platform integrations (0.3.0)
+- **Bilibili:** public video metadata and a single progressive MP4 URL when the provider API returns one. DASH-separated audio/video and multi-segment responses are not exposed as a fake single-file download. Optional local Cookie profile: provider ID `bilibili`, exact host `api.bilibili.com`.
+- **YouTube:** public metadata preview through the oEmbed endpoint. The official YouTube Data API exposes video metadata, not a general video-file download endpoint. No stream URL is fabricated and platform access controls are not bypassed.
+- **Niconico:** public metadata via thumbinfo/watch page. Current version does not negotiate a downloadable media session, so the app displays metadata and clearly states that no download format is available. Optional local Cookie profile host: `www.nicovideo.jp`.
 
-The release build uses an HTTPS placeholder endpoint. Set the production API URL through the release build configuration before distributing an APK.
+All requests are made directly from the Android device. Cookies are encrypted with AES-GCM using a key held by Android Keystore and are only attached to exact HTTPS hosts explicitly allow-listed by the matching adapter. Cookies are never sent to the VideoFetch Pro backend.
 
-## Current client capabilities
+## Other client capabilities
 - Chinese, English, and Japanese Android resources
-- Paste a URL from the system clipboard
-- Receive plain-text links shared from other Android apps
-- Home, Tasks, Files, and Settings navigation
-- HTTPS URL syntax checks on-device
-- Retrofit API interface for task creation and task listing
+- Paste a URL from the system clipboard or receive shared links
+- Local quality preference; the actual formats are limited to what the provider returns for that video and account
+- Device-local Android DownloadManager records
 
-## Local session and quality settings
-- Preferred quality (best available, 2160p, 1440p, 1080p, 720p, or 480p) is stored locally.
-- A user may paste a single Cookie request header for a provider and exact hostname.
-- Cookie values are encrypted with AES-GCM using a key held by Android Keystore.
-- A Cookie is returned only to a provider adapter that explicitly allow-lists the exact HTTPS hostname. Cookies are never sent to the VideoFetch Pro API.
-- The Downloads screen reads device-local Android DownloadManager records. Downloads are stored in the app-specific external files directory.
-
-## Deliberate integration boundary
-The backend currently has only a temporary bootstrap API token, not user sign-in or per-user credentials. The Android APK must never contain that shared administrator token. Task submission remains a UI placeholder until server-side account authentication and individual API credentials are implemented. Provider registry is also intentionally empty until an authorized adapter has been reviewed. The local Cookie vault and downloader are infrastructure only; no platform adapter currently uses them, and no quality upgrade is performed until a supported provider resolver is implemented.
+The API base URL for debug builds defaults to `http://10.0.2.2:8000/`. Release builds use the HTTPS placeholder configured in Gradle; set a production endpoint before distributing a release APK.

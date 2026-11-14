@@ -29,17 +29,19 @@ data class LocalMediaFormat(
     val frameRate: Int? = null,
     val codec: String? = null,
     val dynamicRange: String? = null,
-    val audioLabel: String? = null
+    val audioLabel: String? = null,
+    val referer: String? = null
 ) {
     fun toDownloadable(): LocalMediaResolution.Available = LocalMediaResolution.Available(
         downloadUrl = downloadUrl,
         fileName = fileName,
         mimeType = mimeType,
-        qualityLabel = label
+        qualityLabel = label,
+        referer = referer
     )
 
     fun details(): String = listOfNotNull(
-        height?.let { "${it}p" },
+        height?.takeIf { it > 0 }?.let { "${it}p" },
         frameRate?.let { "${it}fps" },
         codec,
         dynamicRange,
@@ -53,7 +55,8 @@ data class LocalVideoMetadata(
     val uploader: String? = null,
     val durationSeconds: Long? = null,
     val platformName: String,
-    val formats: List<LocalMediaFormat>
+    val formats: List<LocalMediaFormat>,
+    val downloadNoteResId: Int? = null
 )
 
 sealed interface LocalMediaResolution {
@@ -67,18 +70,16 @@ sealed interface LocalMediaResolution {
         val downloadUrl: String,
         val fileName: String,
         val mimeType: String,
-        val qualityLabel: String
+        val qualityLabel: String,
+        val referer: String? = null
     ) : LocalMediaResolution
 
     data class Unsupported(val reason: String) : LocalMediaResolution
 }
 
-/**
- * Registry is intentionally explicit: integrations must be reviewed and
- * registered by the app. An empty registry never pretends a URL was parsed.
- */
+/** Built-in platform adapters are registered explicitly at app startup. */
 object LocalMediaProviderRegistry {
-    private val providers = mutableListOf<LocalMediaProvider>()
+    private val providers = PlatformMediaProviders.builtIns().toMutableList()
 
     @Synchronized
     fun register(provider: LocalMediaProvider) {

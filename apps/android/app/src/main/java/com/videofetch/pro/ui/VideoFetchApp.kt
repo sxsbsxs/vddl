@@ -352,7 +352,8 @@ private fun VideoResultCard(
                 Text(stringResource(R.string.available_formats), fontWeight = FontWeight.SemiBold)
                 if (video.formats.isEmpty()) {
                     Text(
-                        stringResource(R.string.no_download_formats),
+                        video.downloadNoteResId?.let { stringResource(it) }
+                            ?: stringResource(R.string.no_download_formats),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -458,176 +459,129 @@ private fun DownloadsScreen(
                             OutlinedButton(onClick = {
                                 val uri = downloadManager.uriFor(record.id)
                                 if (uri != null) {
-                                    val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "video/*")
-                                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, "video/*")
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
                                     runCatching { context.startActivity(intent) }
                                 }
-                            }) { Text(stringResource(R.string.open_file_button)) }
+                            }) {
+                                Text(stringResource(R.string.open_file_button))
+                            }
                         }
                     }
                 }
             }
         }
-        Text(stringResource(R.string.local_download_location), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun downloadStatusText(status: Int): String = stringResource(
-    when (status) {
-        DownloadManager.STATUS_PENDING -> R.string.download_status_pending
-        DownloadManager.STATUS_RUNNING -> R.string.download_status_running
-        DownloadManager.STATUS_PAUSED -> R.string.download_status_paused
-        DownloadManager.STATUS_SUCCESSFUL -> R.string.download_status_success
-        DownloadManager.STATUS_FAILED -> R.string.download_status_failed
-        else -> R.string.download_status_unknown
-    }
-)
-
-@Composable
-private fun SettingsScreen(
-    modifier: Modifier = Modifier,
-    onBack: () -> Unit
-) {
+private fun SettingsScreen(modifier: Modifier = Modifier, onBack: () -> Unit) {
     val context = LocalContext.current
     val sessions = remember(context) { EncryptedLocalSessionStore(context) }
-    val qualityStore = remember(context) { VideoQualityPreferenceStore(context) }
-    var qualityValue by rememberSaveable { mutableStateOf(qualityStore.get().storageValue) }
-    var qualityMenuExpanded by remember { mutableStateOf(false) }
-
-    var providerId by rememberSaveable { mutableStateOf("my_platform") }
-    var host by rememberSaveable { mutableStateOf("") }
-    var cookieHeader by remember { mutableStateOf("") }
-    var hasSavedCookie by remember { mutableStateOf(false) }
-    var savedHost by remember { mutableStateOf<String?>(null) }
-    var sessionMessage by remember { mutableStateOf("") }
-    val quality = VideoQualityPreference.fromStorage(qualityValue)
-
-    LaunchedEffect(providerId) {
-        val profile = runCatching { sessions.profile(providerId) }.getOrNull()
-        hasSavedCookie = profile != null
-        savedHost = profile?.host
-    }
-
+    var providerId by rememberSaveable { mutableStateOf("bilibili") }
+    var cookieHost by rememberSaveable { mutableStateOf("api.bilibili.com") }
+    var cookie by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf("") }
+    var savedProfile by remember(providerId) { mutableStateOf(sessions.profile(providerId)) }
+    var quality by remember { mutableStateOf(VideoQualityPreferenceStore(context).get()) }
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(15.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         PageHeader(stringResource(R.string.settings_title), onBack)
-
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(17.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text(stringResource(R.string.quality_title), fontWeight = FontWeight.SemiBold)
-                Box {
-                    OutlinedButton(onClick = { qualityMenuExpanded = true }) {
-                        Text(stringResource(quality.labelRes))
-                    }
-                    DropdownMenu(expanded = qualityMenuExpanded, onDismissRequest = { qualityMenuExpanded = false }) {
-                        VideoQualityPreference.entries.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(option.labelRes)) },
-                                onClick = {
-                                    qualityValue = option.storageValue
-                                    qualityStore.set(option)
-                                    qualityMenuExpanded = false
-                                }
-                            )
+        Text(stringResource(R.string.quality_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.quality_explainer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        var qualityExpanded by remember { mutableStateOf(false) }
+        Box {
+            OutlinedButton(onClick = { qualityExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(quality.labelRes))
+            }
+            DropdownMenu(expanded = qualityExpanded, onDismissRequest = { qualityExpanded = false }) {
+                VideoQualityPreference.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(option.labelRes)) },
+                        onClick = {
+                            quality = option
+                            VideoQualityPreferenceStore(context).set(option)
+                            qualityExpanded = false
                         }
-                    }
+                    )
                 }
-                Text(stringResource(R.string.quality_explainer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(stringResource(R.string.quality_format_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(17.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text(stringResource(R.string.local_session_title), fontWeight = FontWeight.SemiBold)
-                Text(stringResource(R.string.local_session_explainer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedTextField(
-                    value = providerId,
-                    onValueChange = { providerId = it.lowercase(); sessionMessage = "" },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.provider_id_label)) },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = host,
-                    onValueChange = { host = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.cookie_host_label)) },
-                    placeholder = { Text("www.example.com") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = cookieHeader,
-                    onValueChange = { cookieHeader = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.cookie_value_label)) },
-                    placeholder = { Text("session=value; token=value") },
-                    minLines = 2,
-                    maxLines = 4,
-                    visualTransformation = PasswordVisualTransformation()
-                )
-                if (hasSavedCookie) {
-                    Text(stringResource(R.string.local_session_saved, savedHost.orEmpty()), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-                }
-                if (sessionMessage.isNotBlank()) {
-                    Text(sessionMessage, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-                }
-                Button(
-                    onClick = {
-                        val saved = runCatching { sessions.saveCookie(providerId, host, cookieHeader) }
-                        if (saved.isSuccess) {
-                            cookieHeader = ""
-                            hasSavedCookie = true
-                            savedHost = runCatching { sessions.profile(providerId)?.host }.getOrNull()
-                            sessionMessage = context.getString(R.string.local_session_save_success)
-                        } else {
-                            sessionMessage = saved.exceptionOrNull()?.message
-                                ?: context.getString(R.string.local_session_save_error)
-                        }
-                    },
-                    enabled = providerId.isNotBlank() && host.isNotBlank() && cookieHeader.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(stringResource(R.string.save_local_session)) }
-                OutlinedButton(
-                    onClick = {
-                        runCatching { sessions.clearCookie(providerId) }
-                        hasSavedCookie = false
-                        savedHost = null
-                        cookieHeader = ""
-                        sessionMessage = context.getString(R.string.local_session_cleared)
-                    },
-                    enabled = hasSavedCookie,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(stringResource(R.string.clear_local_session)) }
-                Text(stringResource(R.string.cookie_security_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            }
-        }
-        Text(
-            stringResource(R.string.app_build_version, BuildConfig.VERSION_NAME),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        Text(stringResource(R.string.local_session_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.local_session_explainer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(
+            value = providerId,
+            onValueChange = { providerId = it.trim().lowercase(); savedProfile = sessions.profile(providerId) },
+            label = { Text(stringResource(R.string.provider_id_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
         )
+        OutlinedTextField(
+            value = cookieHost,
+            onValueChange = { cookieHost = it.trim().lowercase() },
+            label = { Text(stringResource(R.string.cookie_host_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = cookie,
+            onValueChange = { cookie = it },
+            label = { Text(stringResource(R.string.cookie_value_label)) },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = {
+                runCatching { sessions.saveCookie(providerId, cookieHost, cookie) }
+                    .onSuccess {
+                        savedProfile = sessions.profile(providerId)
+                        cookie = ""
+                        status = context.getString(R.string.local_session_save_success)
+                    }
+                    .onFailure { status = context.getString(R.string.local_session_save_error) }
+            }, modifier = Modifier.weight(1f), enabled = providerId.isNotBlank() && cookieHost.isNotBlank() && cookie.isNotBlank()) {
+                Text(stringResource(R.string.save_local_session))
+            }
+            OutlinedButton(onClick = {
+                runCatching { sessions.clearCookie(providerId) }
+                savedProfile = null
+                cookie = ""
+                status = context.getString(R.string.local_session_cleared)
+            }, modifier = Modifier.weight(1f), enabled = savedProfile != null) {
+                Text(stringResource(R.string.clear_local_session))
+            }
+        }
+        savedProfile?.let { Text(stringResource(R.string.local_session_saved, it.host), style = MaterialTheme.typography.bodySmall) }
+        if (status.isNotBlank()) Text(status, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.cookie_security_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        HorizontalDivider()
+        Text(stringResource(R.string.settings_server), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(BuildConfig.API_BASE_URL, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.app_build_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.labelSmall)
     }
 }
 
 @Composable
-private fun PageHeader(
-    title: String,
-    onBack: () -> Unit,
-    action: @Composable RowScope.() -> Unit = {}
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back_button))
-        }
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.weight(1f))
-        action()
+private fun PageHeader(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back_button)) }
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        actions()
+    }
+}
+
+private fun downloadStatusText(status: Int): String {
+    return when (status) {
+        DownloadManager.STATUS_PENDING -> "Waiting"
+        DownloadManager.STATUS_RUNNING -> "Downloading"
+        DownloadManager.STATUS_PAUSED -> "Paused"
+        DownloadManager.STATUS_SUCCESSFUL -> "Completed"
+        DownloadManager.STATUS_FAILED -> "Failed"
+        else -> "Unknown"
     }
 }

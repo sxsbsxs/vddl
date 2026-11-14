@@ -94,4 +94,7 @@
     <string name="back_button">返回</string>
     <string name="app_build_version">版本 %1$s</string>
 
+    <string name="youtube_download_note">已获取 YouTube 视频信息。官方接口未提供视频文件下载地址；此版本不会绕过平台访问限制。</string>
+    <string name="niconico_download_note">已获取 Niconico 视频信息。下载需要平台提供可用的观看会话和媒体流；当前版本暂不生成未经验证的下载地址。</string>
+
 </resources>

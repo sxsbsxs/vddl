@@ -22,11 +22,7 @@ class LocalDownloadManager(
     private val appContext = context.applicationContext
     private val manager = appContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
-    /**
-     * Enqueues a direct media URL returned by a reviewed on-device provider.
-     * Only HTTPS video files from that provider's declared hosts are accepted.
-     * Cookie headers, when present, are attached to this local device request.
-     */
+    /** Enqueues a reviewed HTTPS media URL and only attaches an exactly scoped local Cookie. */
     fun enqueue(
         providerId: String,
         providerAllowedHosts: Set<String>,
@@ -54,7 +50,18 @@ class LocalDownloadManager(
                 Environment.DIRECTORY_DOWNLOADS,
                 safeFileName(media.fileName)
             )
+            .addRequestHeader(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/126.0.0.0 Mobile Safari/537.36"
+            )
 
+        media.referer?.let { referer ->
+            val refererUri = Uri.parse(referer)
+            require(refererUri.scheme == "https" && !refererUri.host.isNullOrBlank() && refererUri.userInfo == null) {
+                "Invalid provider referer"
+            }
+            request.addRequestHeader("Referer", referer)
+        }
         sessions.cookieHeaderFor(providerId, media.downloadUrl, providerAllowedHosts)?.let {
             request.addRequestHeader("Cookie", it)
         }
