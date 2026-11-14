@@ -135,4 +135,7 @@
     <string name="cookie_simple_note">Public YouTube video previews do not need a Cookie. Cookies stay on this device and are never uploaded to the server.</string>
     <string name="download_merging_notification">Downloading and combining video and audio</string>
     <string name="download_merging_progress">Combining video and audio · %1$d%%</string>
+    <string name="download_retry">Retry</string>
+    <string name="download_retry_added">Added to the download queue again</string>
+    <string name="download_retry_failed">Could not retry. Parse the video link again.</string>
 </resources>

@@ -135,4 +135,7 @@
     <string name="cookie_simple_note">YouTube の公開動画プレビューに Cookie は不要です。Cookie はこの端末内に保存され、サーバーには送信されません。</string>
     <string name="download_merging_notification">動画と音声をダウンロードして結合しています</string>
     <string name="download_merging_progress">動画と音声を結合中 · %1$d%%</string>
+    <string name="download_retry">再試行</string>
+    <string name="download_retry_added">ダウンロードキューに再追加しました</string>
+    <string name="download_retry_failed">再試行できません。動画リンクをもう一度解析してください。</string>
 </resources>

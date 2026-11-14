@@ -6,6 +6,8 @@ import android.net.Uri
 import android.os.Environment
 import androidx.core.content.FileProvider
 import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -47,12 +49,15 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
         val jobsDir = File(appContext.filesDir, JOBS_DIRECTORY).apply { mkdirs() }
         val specFile = File(jobsDir, "$jobId.json")
         specFile.writeText(JSONObject()
+            .put("title", media.fileName)
             .put("videoUrls", JSONArray(videoUrls))
             .put("audioUrl", media.audioDownloadUrl ?: JSONObject.NULL)
             .put("referer", media.referer ?: JSONObject.NULL)
             .toString())
         val request = OneTimeWorkRequestBuilder<MediaMergeWorker>()
-            .setInputData(workDataOf(MediaMergeWorker.KEY_JOB_ID to jobId, MediaMergeWorker.KEY_TITLE to media.fileName))
+            .setId(jobId)
+            .setInputData(workDataOf(MediaMergeWorker.KEY_JOB_ID to jobId.toString(), MediaMergeWorker.KEY_TITLE to media.fileName))
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
             .addTag(MERGE_TAG)
             .addTag("job:$jobId")
@@ -68,13 +73,15 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
     }
 
     private fun enqueueDirect(providerId: String, providerAllowedHosts: Set<String>, media: LocalMediaResolution.Available): Long {
+        val displayName = safeFileName(media.fileName)
+        val uniqueName = uniqueDownloadName(displayName)
         val request = DownloadManager.Request(Uri.parse(media.downloadUrl))
-            .setTitle(safeFileName(media.fileName))
+            .setTitle(displayName)
             .setDescription("VideoFetch Pro - " + media.qualityLabel)
             .setMimeType(media.mimeType)
             .setAllowedOverRoaming(false)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationInExternalFilesDir(appContext, Environment.DIRECTORY_MOVIES, "VideoFetch Pro/" + safeFileName(media.fileName))
+            .setDestinationInExternalFilesDir(appContext, Environment.DIRECTORY_MOVIES, "VideoFetch Pro/" + uniqueName)
             .addRequestHeader("User-Agent", USER_AGENT)
         media.referer?.let { request.addRequestHeader("Referer", it) }
         sessions.cookieHeaderFor(providerId, media.downloadUrl, providerAllowedHosts)?.let { request.addRequestHeader("Cookie", it) }
@@ -141,10 +148,52 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
         return info != null && (deletedOutput || deletedSpec)
     }
 
+    fun retry(id: String): String? {
+        if (!id.startsWith("merge:")) return null
+        val oldId = runCatching { UUID.fromString(id.removePrefix("merge:")) }.getOrNull() ?: return null
+        val oldInfo = runCatching { workManager.getWorkInfoById(oldId).get() }.getOrNull() ?: return null
+        if (oldInfo.state != WorkInfo.State.FAILED) return null
+        val oldSpec = File(appContext.filesDir, "$JOBS_DIRECTORY/$oldId.json")
+        if (!oldSpec.isFile) return null
+        val newId = UUID.randomUUID()
+        val newSpec = File(oldSpec.parentFile, "$newId.json")
+        return runCatching {
+            oldSpec.copyTo(newSpec, overwrite = false)
+            val title = readJobTitle(newId.toString())
+            val request = OneTimeWorkRequestBuilder<MediaMergeWorker>()
+                .setId(newId)
+                .setInputData(workDataOf(MediaMergeWorker.KEY_JOB_ID to newId.toString(), MediaMergeWorker.KEY_TITLE to title))
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .addTag(MERGE_TAG)
+                .build()
+            workManager.enqueue(request)
+            "merge:$newId"
+        }.getOrElse {
+            newSpec.delete()
+            null
+        }
+    }
+
+    private fun readJobTitle(jobId: String): String =
+        runCatching {
+            JSONObject(File(appContext.filesDir, "$JOBS_DIRECTORY/$jobId.json").readText())
+                .optString("title")
+                .takeIf { it.isNotBlank() && it != "null" }
+        }.getOrNull() ?: "Video"
+
     private fun validateReferer(value: String?) {
         if (value == null) return
         val uri = Uri.parse(value)
         require(uri.scheme.equals("https", true) && !uri.host.isNullOrBlank() && uri.userInfo == null) { "Invalid provider referer" }
+    }
+
+    private fun uniqueDownloadName(value: String): String {
+        val name = safeFileName(value)
+        val extension = name.substringAfterLast('.', "").takeIf { it.isNotBlank() }
+        val stem = if (extension == null) name else name.dropLast(extension.length + 1)
+        val suffix = UUID.randomUUID().toString().take(8)
+        return if (extension == null) "$stem-$suffix" else "$stem-$suffix.$extension"
     }
 
     private fun safeFileName(value: String): String {

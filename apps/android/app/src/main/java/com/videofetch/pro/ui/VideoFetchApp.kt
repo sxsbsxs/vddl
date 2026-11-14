@@ -491,6 +491,11 @@ private fun DownloadsScreen(downloadManager: LocalDownloadManager, onBack: () ->
                             val removed = downloadManager.remove(record.id)
                             actionMessage = if (removed) context.getString(R.string.download_removed) else context.getString(R.string.download_remove_failed)
                             refreshKey++
+                        },
+                        onRetry = {
+                            val retryId = downloadManager.retry(record.id)
+                            actionMessage = if (retryId != null) context.getString(R.string.download_retry_added) else context.getString(R.string.download_retry_failed)
+                            refreshKey++
                         }
                     )
                 }
@@ -500,7 +505,7 @@ private fun DownloadsScreen(downloadManager: LocalDownloadManager, onBack: () ->
 }
 
 @Composable
-private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemove: () -> Unit) {
+private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemove: () -> Unit, onRetry: () -> Unit) {
     val context = LocalContext.current
     val done = record.status == DownloadManager.STATUS_SUCCESSFUL
     val failed = record.status == DownloadManager.STATUS_FAILED
@@ -537,7 +542,14 @@ private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemo
                 if (done) {
                     Button(onClick = onOpen, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.open_file_button)) }
                 }
-                OutlinedButton(onClick = onRemove, modifier = Modifier.weight(if (done) 0.8f else 1f), shape = RoundedCornerShape(12.dp)) {
+                if (failed && record.id.startsWith("merge:")) {
+                    OutlinedButton(onClick = onRetry, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
+                        Icon(Icons.Filled.Refresh, contentDescription = null)
+                        Spacer(Modifier.width(5.dp))
+                        Text(stringResource(R.string.download_retry))
+                    }
+                }
+                OutlinedButton(onClick = onRemove, modifier = Modifier.weight(if (done || (failed && record.id.startsWith("merge:"))) 0.8f else 1f), shape = RoundedCornerShape(12.dp)) {
                     Icon(Icons.Filled.Delete, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.remove_button))

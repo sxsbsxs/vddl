@@ -135,4 +135,7 @@
     <string name="cookie_simple_note">YouTube 公开视频解析不需要 Cookie。Cookie 只保存在这台手机，不会上传到服务器。</string>
     <string name="download_merging_notification">正在下载并合并音视频，请勿关闭应用</string>
     <string name="download_merging_progress">正在合并音视频 · %1$d%%</string>
+    <string name="download_retry">重试</string>
+    <string name="download_retry_added">已重新加入下载队列</string>
+    <string name="download_retry_failed">重试失败，请重新解析视频链接</string>
 </resources>

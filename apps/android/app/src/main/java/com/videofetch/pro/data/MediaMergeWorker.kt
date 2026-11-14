@@ -50,7 +50,9 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
         )
         if (!directory.exists() && !directory.mkdirs()) return failureAndClean(jobFile, "Cannot create output folder")
         val title = safeFileName(inputData.getString(KEY_TITLE) ?: "videofetch-video.mp4")
-        val output = File(directory, if (title.endsWith(".mp4", true)) title else "$title.mp4")
+        val baseName = if (title.endsWith(".mp4", true)) title else "$title.mp4"
+        val stem = baseName.removeSuffix(".mp4")
+        val output = File(directory, "$stem-${jobId.take(8)}.mp4")
         val temp = File(directory, ".$jobId.partial.mp4")
         try {
             val spec = JSONObject(jobFile.readText())
@@ -124,15 +126,17 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
             }
             jobFile.delete()
             setProgress(workDataOf(KEY_PROGRESS to 100))
-            return Result.success(workDataOf(KEY_OUTPUT_PATH to output.absolutePath))
+            return Result.success(workDataOf(KEY_OUTPUT_PATH to output.absolutePath, KEY_TITLE to title))
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             temp.delete()
             throw cancelled
         } catch (error: Throwable) {
             temp.delete()
             if (error.hasIoCause() && runAttemptCount < 5) return Result.retry()
-            jobFile.delete()
-            return failure(error.message?.take(240) ?: "Could not merge video and audio")
+            return Result.failure(workDataOf(
+                KEY_ERROR to (error.message?.take(240) ?: "Could not merge video and audio"),
+                KEY_TITLE to title
+            ))
         }
     }
 
