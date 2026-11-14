@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo
+import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMuxer
@@ -176,7 +177,7 @@ class BilibiliDashMergeWorker(
 
             val videoBuffer = ByteBuffer.allocateDirect(bufferSize(videoFormat))
             val audioBuffer = ByteBuffer.allocateDirect(bufferSize(audioFormat))
-            val videoInfo = MediaMuxer.BufferInfo()
+            val videoInfo = MediaCodec.BufferInfo()
             val audioInfo = MediaMuxer.BufferInfo()
             var videoDone = false
             var audioDone = false
