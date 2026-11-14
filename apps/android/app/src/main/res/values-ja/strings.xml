@@ -60,4 +60,22 @@
     <string name="download_status_success">完了</string>
     <string name="download_status_failed">失敗</string>
     <string name="download_status_unknown">不明な状態</string>
+
+    <string name="quality_4320">4320p（8K）</string>
+    <string name="quality_2880">2880p（5K）</string>
+    <string name="quality_1800">1800p</string>
+    <string name="quality_1200">1200p</string>
+    <string name="quality_960">960p</string>
+    <string name="quality_900">900p</string>
+    <string name="quality_864">864p</string>
+    <string name="quality_640">640p</string>
+    <string name="quality_576">576p</string>
+    <string name="quality_540">540p</string>
+    <string name="quality_432">432p</string>
+    <string name="quality_360">360p</string>
+    <string name="quality_288">288p</string>
+    <string name="quality_240">240p</string>
+    <string name="quality_144">144p</string>
+    <string name="quality_format_note">解像度は上限フィルターです。フレームレート（30/60/120fps）、HDR/SDR、コーデック（AV1/VP9/H.264）、音声トラックは、プロバイダーアダプターが実際の形式を返した後に個別表示します。存在しない選択肢は表示しません。</string>
+
 </resources>

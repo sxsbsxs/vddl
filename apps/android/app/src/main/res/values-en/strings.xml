@@ -60,4 +60,22 @@
     <string name="download_status_success">Completed</string>
     <string name="download_status_failed">Failed</string>
     <string name="download_status_unknown">Unknown status</string>
+
+    <string name="quality_4320">4320p (8K)</string>
+    <string name="quality_2880">2880p (5K)</string>
+    <string name="quality_1800">1800p</string>
+    <string name="quality_1200">1200p</string>
+    <string name="quality_960">960p</string>
+    <string name="quality_900">900p</string>
+    <string name="quality_864">864p</string>
+    <string name="quality_640">640p</string>
+    <string name="quality_576">576p</string>
+    <string name="quality_540">540p</string>
+    <string name="quality_432">432p</string>
+    <string name="quality_360">360p</string>
+    <string name="quality_288">288p</string>
+    <string name="quality_240">240p</string>
+    <string name="quality_144">144p</string>
+    <string name="quality_format_note">Resolution is a ceiling filter. Frame rates (30/60/120 fps), HDR/SDR, codecs (AV1/VP9/H.264), and audio tracks will be listed separately once a provider adapter reports the actual formats; unavailable options will never be fabricated.</string>
+
 </resources>

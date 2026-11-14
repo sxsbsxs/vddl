@@ -60,4 +60,22 @@
     <string name="download_status_success">下载完成</string>
     <string name="download_status_failed">下载失败</string>
     <string name="download_status_unknown">状态未知</string>
+
+    <string name="quality_4320">4320p（8K）</string>
+    <string name="quality_2880">2880p（5K）</string>
+    <string name="quality_1800">1800p</string>
+    <string name="quality_1200">1200p</string>
+    <string name="quality_960">960p</string>
+    <string name="quality_900">900p</string>
+    <string name="quality_864">864p</string>
+    <string name="quality_640">640p</string>
+    <string name="quality_576">576p</string>
+    <string name="quality_540">540p</string>
+    <string name="quality_432">432p</string>
+    <string name="quality_360">360p</string>
+    <string name="quality_288">288p</string>
+    <string name="quality_240">240p</string>
+    <string name="quality_144">144p</string>
+    <string name="quality_format_note">分辨率是筛选上限；帧率（如 30/60/120fps）、HDR/SDR、视频编码（AV1/VP9/H.264）和音轨会在平台适配器返回真实格式后单独列出，不会虚构平台没有提供的选项。</string>
+
 </resources>

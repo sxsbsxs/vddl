@@ -319,6 +319,7 @@ private fun SettingsScreen() {
                     }
                 }
                 Text(stringResource(R.string.quality_explainer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f))
+                Text(stringResource(R.string.quality_format_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f))
             }
         }
 
