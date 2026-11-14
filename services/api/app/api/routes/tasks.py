@@ -12,10 +12,11 @@ from app.db import get_db, SessionLocal
 from app.models import DownloadTask
 from app.queue import get_task_queue
 from app.schemas.tasks import TaskCreateRequest, TaskResponse, TaskStatus
+from app.security.api_key import require_api_key
 from app.security.url_validation import UnsafeSourceUrl, validate_source_url
 from app.services.platform_registry import resolve_authorized_adapter
 
-router = APIRouter(prefix="/tasks", tags=["tasks"])
+router = APIRouter(prefix="/tasks", tags=["tasks"], dependencies=[Depends(require_api_key)])
 _TERMINAL = {TaskStatus.COMPLETED.value, TaskStatus.FAILED.value, TaskStatus.CANCELLED.value}
 
 def _get_task_or_404(db: Session, task_id: UUID) -> DownloadTask:
