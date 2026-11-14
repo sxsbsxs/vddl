@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.Clock
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -60,9 +61,20 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
             val videoUrls = (0 until urlsJson.length()).map { urlsJson.getString(it) }
             if (videoUrls.isEmpty() || videoUrls.size > 80) return failureAndClean(jobFile, "Invalid video segments")
             val audioUrl = spec.optString("audioUrl").takeIf { it.isNotBlank() && it != "null" }
+            val dashManifest = spec.optString("dashManifest").takeIf { it.isNotBlank() && it != "null" }
             val referer = spec.optString("referer").takeIf { it.isNotBlank() && it != "null" }
             (videoUrls + listOfNotNull(audioUrl)).forEach(::requireSafeHttpsUrl)
+            val manifestUrls = dashManifest?.let { manifest ->
+                Regex("<BaseURL>(.*?)</BaseURL>").findAll(manifest).map {
+                    it.groupValues[1].replace("&amp;", "&")
+                }.toList()
+            }.orEmpty()
+            if (dashManifest != null) {
+                require(manifestUrls.size >= 2) { "DASH manifest must include video and audio tracks" }
+                manifestUrls.forEach(::requireSafeHttpsUrl)
+            }
             referer?.let(::requireSafeHttpsUrl)
+            var manifestFile: File? = null
             val headers = buildMap {
                 put("User-Agent", USER_AGENT)
                 referer?.let { put("Referer", it) }
@@ -77,14 +89,30 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
                 applicationContext, DefaultDecoderFactory.Builder(applicationContext).build(),
                 Clock.DEFAULT, sourceFactory, bitmapLoader
             )
-            val videoItems = videoUrls.map { EditedMediaItem.Builder(MediaItem.fromUri(it)).build() }
-            val composition = if (audioUrl != null) {
-                val audioItem = EditedMediaItem.Builder(MediaItem.fromUri(audioUrl)).build()
+            val composition = if (dashManifest != null) {
+                // A standalone .m4s URL is not enough: use the SegmentBase initialization and SIDX ranges in the MPD.
+                val mpdFile = File(jobFile.parentFile, "$jobId.mpd")
+                manifestFile = mpdFile
+                mpdFile.writeText(dashManifest)
+                val dashItem = MediaItem.Builder()
+                    .setUri(android.net.Uri.fromFile(mpdFile))
+                    .setMimeType(MimeTypes.APPLICATION_MPD)
+                    .build()
                 Composition.Builder(
-                    EditedMediaItemSequence.withVideoFrom(videoItems),
-                    EditedMediaItemSequence.withAudioFrom(listOf(audioItem))
+                    EditedMediaItemSequence.withAudioAndVideoFrom(
+                        listOf(EditedMediaItem.Builder(dashItem).build())
+                    )
                 ).build()
-            } else Composition.Builder(EditedMediaItemSequence.withAudioAndVideoFrom(videoItems)).build()
+            } else {
+                val videoItems = videoUrls.map { EditedMediaItem.Builder(MediaItem.fromUri(it)).build() }
+                if (audioUrl != null) {
+                    val audioItem = EditedMediaItem.Builder(MediaItem.fromUri(audioUrl)).build()
+                    Composition.Builder(
+                        EditedMediaItemSequence.withVideoFrom(videoItems),
+                        EditedMediaItemSequence.withAudioFrom(listOf(audioItem))
+                    ).build()
+                } else Composition.Builder(EditedMediaItemSequence.withAudioAndVideoFrom(videoItems)).build()
+            }
             setForeground(foregroundInfo(0))
             temp.delete()
             val completion = CompletableDeferred<Throwable?>()
@@ -124,6 +152,7 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
                 temp.copyTo(output, overwrite = true)
                 temp.delete()
             }
+            manifestFile?.delete()
             jobFile.delete()
             setProgress(workDataOf(KEY_PROGRESS to 100))
             return Result.success(workDataOf(KEY_OUTPUT_PATH to output.absolutePath, KEY_TITLE to title))
@@ -132,7 +161,9 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
             throw cancelled
         } catch (error: Throwable) {
             temp.delete()
+            manifestFile?.delete()
             if (error.hasIoCause() && runAttemptCount < 5) return Result.retry()
+            jobFile.delete()
             return Result.failure(workDataOf(
                 KEY_ERROR to (error.message?.take(240) ?: "Could not merge video and audio"),
                 KEY_TITLE to title

@@ -110,8 +110,11 @@ internal object PlatformMediaProviders {
                 if (playJson?.optInt("code", -1) == 0) {
                     val playData = playJson.optJSONObject("data")
                     if (playData != null) {
-                        formats += BilibiliMediaFormatParser.parse(playData, preferredQuality.maxHeight)
-                            .map { it.copy(fileName = "$title.mp4", referer = "https://www.bilibili.com/video/$bvid") }
+                        formats += BilibiliMediaFormatParser.parse(
+                            playData,
+                            preferredQuality.maxHeight,
+                            duration ?: (playData.optLong("timelength") / 1000L)
+                        ).map { it.copy(fileName = "$title.mp4", referer = "https://www.bilibili.com/video/$bvid") }
                     }
                 }
             }
@@ -128,7 +131,10 @@ internal object PlatformMediaProviders {
                 providerId = providerId,
                 allowedHosts = allowedCookieHosts + formats.flatMap { format ->
                     format.videoSegmentUrls.mapNotNull { it.toHttpUrlOrNull()?.host } +
-                        listOfNotNull(format.audioUrl?.toHttpUrlOrNull()?.host)
+                        listOfNotNull(format.audioUrl?.toHttpUrlOrNull()?.host) +
+                        Regex("<BaseURL>(.*?)</BaseURL>").findAll(format.dashManifest.orEmpty()).mapNotNull {
+                            it.groupValues[1].replace("&amp;", "&").toHttpUrlOrNull()?.host
+                        }.toList()
                 }
             )
         }

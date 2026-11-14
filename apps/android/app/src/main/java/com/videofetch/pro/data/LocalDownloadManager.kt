@@ -32,16 +32,25 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
     fun enqueue(providerId: String, providerAllowedHosts: Set<String>, media: LocalMediaResolution.Available): String {
         val videoUrls = media.videoSegmentUrls.ifEmpty { listOf(media.downloadUrl) }
         require(videoUrls.size in 1..MAX_VIDEO_SEGMENTS) { "Invalid number of video segments" }
-        (videoUrls + listOfNotNull(media.audioDownloadUrl)).forEach { url ->
+        val manifestUrls = media.dashManifest?.let { manifest ->
+            Regex("<BaseURL>(.*?)</BaseURL>").findAll(manifest).map {
+                it.groupValues[1].replace("&amp;", "&")
+            }.toList()
+        }.orEmpty()
+        if (media.dashManifest != null) require(manifestUrls.size >= 2) { "DASH manifest must include video and audio tracks" }
+        val urlsToValidate = if (media.dashManifest != null) manifestUrls else videoUrls + listOfNotNull(media.audioDownloadUrl)
+        urlsToValidate.forEach { url ->
             val uri = Uri.parse(url)
-            require(uri.scheme.equals("https", true) && !uri.host.isNullOrBlank()) { "Downloads must use HTTPS" }
+            require(uri.scheme.equals("https", true) && !uri.host.isNullOrBlank() && uri.userInfo == null) {
+                "Downloads must use safe HTTPS URLs"
+            }
             require(CookieScopePolicy.mayAttachCookie(url, uri.host!!, providerAllowedHosts)) {
                 "The media host is not approved by this provider adapter"
             }
         }
         require(media.mimeType == "video/mp4") { "Only verified MP4 streams can be exported" }
         validateReferer(media.referer)
-        if (media.audioDownloadUrl == null && videoUrls.size == 1) {
+        if (media.dashManifest == null && media.audioDownloadUrl == null && videoUrls.size == 1) {
             return "dm:${enqueueDirect(providerId, providerAllowedHosts, media)}"
         }
 
@@ -52,6 +61,7 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
             .put("title", media.fileName)
             .put("videoUrls", JSONArray(videoUrls))
             .put("audioUrl", media.audioDownloadUrl ?: JSONObject.NULL)
+            .put("dashManifest", media.dashManifest ?: JSONObject.NULL)
             .put("referer", media.referer ?: JSONObject.NULL)
             .toString())
         val request = OneTimeWorkRequestBuilder<MediaMergeWorker>()
