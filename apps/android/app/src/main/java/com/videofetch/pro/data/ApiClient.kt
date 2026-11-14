@@ -16,7 +16,7 @@ object ApiClient {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
         return Retrofit.Builder()
-            .baseUrl(if (baseUrl.endsWith("/")) baseUrl else "$" + "baseUrl/")
+            .baseUrl(if (baseUrl.endsWith("/")) baseUrl else baseUrl + "/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
