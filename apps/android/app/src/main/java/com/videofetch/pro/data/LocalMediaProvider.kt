@@ -56,7 +56,8 @@ data class LocalVideoMetadata(
     val durationSeconds: Long? = null,
     val platformName: String,
     val formats: List<LocalMediaFormat>,
-    val downloadNoteResId: Int? = null
+    val downloadNoteResId: Int? = null,
+    val availableVariantLabels: List<String> = emptyList()
 )
 
 sealed interface LocalMediaResolution {

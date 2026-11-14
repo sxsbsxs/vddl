@@ -19,7 +19,7 @@ gradle -p apps/android testDebugUnitTest
 ## Platform integrations (0.3.0)
 - **Bilibili:** public video metadata and a single progressive MP4 URL when the provider API returns one. DASH-separated audio/video and multi-segment responses are not exposed as a fake single-file download. Optional local Cookie profile: provider ID `bilibili`, exact host `api.bilibili.com`.
 - **YouTube:** public metadata preview through the oEmbed endpoint. The official YouTube Data API exposes video metadata, not a general video-file download endpoint. No stream URL is fabricated and platform access controls are not bypassed.
-- **Niconico:** public metadata via thumbinfo/watch page. Current version does not negotiate a downloadable media session, so the app displays metadata and clearly states that no download format is available. Optional local Cookie profile host: `www.nicovideo.jp`.
+- **Niconico:** public metadata and available quality labels via the guest watch API. An optional local `user_session` Cookie is used only with the logged-in watch API on `www.nicovideo.jp`. Actual file delivery requires a short-lived playback session and heartbeat; this version does not expose an unverified static download URL.
 
 All requests are made directly from the Android device. Cookies are encrypted with AES-GCM using a key held by Android Keystore and are only attached to exact HTTPS hosts explicitly allow-listed by the matching adapter. Cookies are never sent to the VideoFetch Pro backend.
 

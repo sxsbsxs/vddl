@@ -6,11 +6,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
-import android.util.Xml
-import org.xmlpull.v1.XmlPullParser
 import java.io.IOException
-import java.io.StringReader
-import java.net.URI
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -276,32 +273,69 @@ internal object PlatformMediaProviders {
                 .find(watch.encodedPath)?.value
                 ?: return LocalMediaResolution.Unsupported("Cannot find a Niconico video ID in this link.")
 
-            val pageHtml = runCatching {
-                requestText(
-                    "https://www.nicovideo.jp/watch/$videoId",
-                    sessions,
+            val actionTrackId = UUID.randomUUID().toString().replace("-", "").take(10) +
+                "_" + System.currentTimeMillis().toString()
+            val headers = mapOf("X-Frontend-Id" to "6", "X-Frontend-Version" to "0")
+            val hasLocalSession = sessions.hasCookie(providerId)
+            fun watchApi(loggedIn: Boolean): JSONObject {
+                val endpoint = buildUrl(
+                    "https://www.nicovideo.jp/api/watch/" +
+                        (if (loggedIn) "v3/" else "v3_guest/") + videoId
+                ) {
+                    addQueryParameter("actionTrackId", actionTrackId)
+                    addQueryParameter("noSideEffect", "true")
+                }
+                val response = requestText(
+                    endpoint,
+                    if (loggedIn) sessions else null,
                     providerId,
-                    allowedCookieHosts
+                    allowedCookieHosts,
+                    headers
                 ).body
-            }.getOrNull()
-            val thumbXml = runCatching {
-                requestText("https://ext.nicovideo.jp/api/getthumbinfo/$videoId").body
-            }.getOrNull()
-            val thumb = thumbXml?.let(::parseNiconicoThumbInfo)
-            val title = thumb?.title
-                ?: pageHtml?.let { extractMeta(it, "og:title") }
-                ?: return LocalMediaResolution.Unsupported("Niconico did not provide public video metadata for $videoId.")
-            val cover = thumb?.thumbnailUrl
-                ?: pageHtml?.let { extractMeta(it, "og:image") }
+                val json = JSONObject(response)
+                val status = json.optJSONObject("meta")?.optInt("status", 200) ?: 200
+                if (status != 200 || json.optJSONObject("data") == null) {
+                    throw IOException("Niconico watch API returned status $status.")
+                }
+                return json
+            }
+
+            val watchJson = runCatching { watchApi(hasLocalSession) }.getOrElse { firstError ->
+                if (!hasLocalSession) throw firstError
+                runCatching { watchApi(false) }.getOrElse { throw firstError }
+            }
+            val data = watchJson.optJSONObject("data")
+                ?: return LocalMediaResolution.Unsupported("Niconico returned an empty video record.")
+            val video = data.optJSONObject("video")
+                ?: return LocalMediaResolution.Unsupported("Niconico did not return video metadata.")
+            val movie = data.optJSONObject("media")
+                ?.optJSONObject("delivery")
+                ?.optJSONObject("movie")
+            val availableVariants = buildList {
+                val videos = movie?.optJSONArray("videos") ?: return@buildList
+                for (index in 0 until videos.length()) {
+                    val item = videos.optJSONObject(index) ?: continue
+                    if (!item.optBoolean("isAvailable", false)) continue
+                    val metadata = item.optJSONObject("metadata")
+                    val label = metadata?.optString("label").orEmpty()
+                    val height = metadata?.optJSONObject("resolution")?.optInt("height", 0) ?: 0
+                    val resolvedLabel = label.takeIf { it.isNotBlank() && it != "null" }
+                        ?: height.takeIf { it > 0 }?.let { "${it}p" }
+                    if (resolvedLabel != null && resolvedLabel !in this) add(resolvedLabel)
+                }
+            }
             return LocalMediaResolution.Resolved(
                 video = LocalVideoMetadata(
-                    title = title,
-                    coverUrl = cover?.takeIf { it.startsWith("https://") },
-                    uploader = thumb?.uploader,
-                    durationSeconds = thumb?.durationSeconds,
+                    title = video.optString("title").ifBlank { "Niconico video $videoId" },
+                    coverUrl = video.optJSONObject("thumbnail")?.optString("url")
+                        ?.takeIf { it.startsWith("https://") },
+                    uploader = data.optJSONObject("owner")?.optString("nickname")
+                        ?.takeIf { it.isNotBlank() },
+                    durationSeconds = video.optLong("duration", 0L).takeIf { it > 0 },
                     platformName = "Niconico",
                     formats = emptyList(),
-                    downloadNoteResId = R.string.niconico_download_note
+                    downloadNoteResId = R.string.niconico_download_note,
+                    availableVariantLabels = availableVariants
                 ),
                 providerId = providerId,
                 allowedHosts = allowedCookieHosts
@@ -315,7 +349,8 @@ internal object PlatformMediaProviders {
         url: String,
         sessions: EncryptedLocalSessionStore? = null,
         providerId: String? = null,
-        allowedHosts: Set<String> = emptySet()
+        allowedHosts: Set<String> = emptySet(),
+        extraHeaders: Map<String, String> = emptyMap()
     ): HttpResult {
         val builder = Request.Builder()
             .url(url)
@@ -326,6 +361,7 @@ internal object PlatformMediaProviders {
                 builder.header("Cookie", it)
             }
         }
+        extraHeaders.forEach { (name, value) -> builder.header(name, value) }
         http.newCall(builder.build()).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Provider request failed (HTTP ${response.code}).")
             val body = response.body?.string() ?: throw IOException("Provider returned an empty response.")
@@ -336,49 +372,6 @@ internal object PlatformMediaProviders {
     private fun buildUrl(base: String, configure: HttpUrl.Builder.() -> Unit): String {
         val url = base.toHttpUrlOrNull() ?: throw IllegalArgumentException("Invalid provider endpoint")
         return url.newBuilder().apply(configure).build().toString()
-    }
-
-    private data class NiconicoThumb(
-        val title: String?,
-        val thumbnailUrl: String?,
-        val uploader: String?,
-        val durationSeconds: Long?
-    )
-
-    private fun parseNiconicoThumbInfo(xml: String): NiconicoThumb? = runCatching {
-        val parser = Xml.newPullParser()
-        parser.setInput(StringReader(xml))
-        var title: String? = null
-        var thumbnail: String? = null
-        var uploader: String? = null
-        var duration: Long? = null
-        var hasError = false
-        var event = parser.eventType
-        while (event != XmlPullParser.END_DOCUMENT) {
-            if (event == XmlPullParser.START_TAG) {
-                when (parser.name) {
-                    "error" -> hasError = true
-                    "title" -> title = parser.nextText()
-                    "thumbnail_url" -> thumbnail = parser.nextText()
-                    "user_nickname" -> uploader = parser.nextText()
-                    "length" -> duration = parseClockDuration(parser.nextText())
-                }
-            }
-            event = parser.next()
-        }
-        if (hasError || title.isNullOrBlank()) null
-        else NiconicoThumb(title, thumbnail, uploader, duration)
-    }.getOrNull()
-
-    private fun parseClockDuration(value: String): Long? {
-        val parts = value.trim().split(":").mapNotNull { it.toLongOrNull() }
-        if (parts.isEmpty()) return null
-        return when (parts.size) {
-            3 -> parts[0] * 3600 + parts[1] * 60 + parts[2]
-            2 -> parts[0] * 60 + parts[1]
-            1 -> parts[0]
-            else -> null
-        }
     }
 
     private fun extractMeta(html: String, property: String): String? {

@@ -97,4 +97,5 @@
     <string name="youtube_download_note">YouTube details are available. Its official API does not provide a video-file download URL; this app will not bypass platform access controls.</string>
     <string name="niconico_download_note">Niconico details are available. Download requires a valid provider watch session and media stream; this version does not invent an unverified download URL.</string>
 
+    <string name="provider_reported_formats">Available qualities reported by the platform</string>
 </resources>

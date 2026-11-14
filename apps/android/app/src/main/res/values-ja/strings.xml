@@ -97,4 +97,5 @@
     <string name="youtube_download_note">YouTube の動画情報を取得しました。公式 API は動画ファイルのダウンロード URL を提供していないため、アクセス制限は回避しません。</string>
     <string name="niconico_download_note">Niconico の動画情報を取得しました。ダウンロードには有効な視聴セッションとメディアストリームが必要です。未検証の URL は生成しません。</string>
 
+    <string name="provider_reported_formats">プラットフォームが返した利用可能な画質</string>
 </resources>

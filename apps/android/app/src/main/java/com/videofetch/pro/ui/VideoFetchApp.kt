@@ -350,6 +350,14 @@ private fun VideoResultCard(
                 }
                 HorizontalDivider()
                 Text(stringResource(R.string.available_formats), fontWeight = FontWeight.SemiBold)
+                if (video.availableVariantLabels.isNotEmpty()) {
+                    Text(stringResource(R.string.provider_reported_formats), style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        video.availableVariantLabels.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 if (video.formats.isEmpty()) {
                     Text(
                         video.downloadNoteResId?.let { stringResource(it) }
