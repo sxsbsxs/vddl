@@ -145,6 +145,7 @@ internal object PlatformMediaProviders {
             return when {
                 height >= 4320 -> 127
                 height >= 2160 -> 120
+                height >= 1440 -> 100
                 height >= 1080 -> 80
                 height >= 720 -> 64
                 height >= 480 -> 32
@@ -155,6 +156,7 @@ internal object PlatformMediaProviders {
         private fun bilibiliHeight(qn: Int): Int = when (qn) {
             127 -> 4320
             126, 125, 120 -> 2160
+            100 -> 1440
             116, 112, 80 -> 1080
             74, 64 -> 720
             32 -> 480
@@ -167,6 +169,7 @@ internal object PlatformMediaProviders {
             126 -> "2160p · Dolby Vision"
             125 -> "2160p · HDR"
             120 -> "2160p · 4K"
+            100 -> "1440p"
             116 -> "1080p · 60fps"
             112 -> "1080p+"
             80 -> "1080p"

@@ -478,7 +478,7 @@ private fun DownloadsScreen(downloadManager: LocalDownloadManager, onBack: () ->
                     DownloadCard(
                         record = record,
                         onOpen = {
-                            val uri = downloadManager.uriFor(record)
+                            val uri = downloadManager.uriFor(record.id)
                             if (uri != null) {
                                 val intent = Intent(Intent.ACTION_VIEW).apply {
                                     setDataAndType(uri, "video/*")
@@ -488,7 +488,7 @@ private fun DownloadsScreen(downloadManager: LocalDownloadManager, onBack: () ->
                             }
                         },
                         onRemove = {
-                            val removed = downloadManager.remove(record)
+                            val removed = downloadManager.remove(record.id)
                             actionMessage = if (removed) context.getString(R.string.download_removed) else context.getString(R.string.download_remove_failed)
                             refreshKey++
                         }
@@ -531,9 +531,6 @@ private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemo
                 Text(stringResource(R.string.download_complete_hint), color = Muted, style = MaterialTheme.typography.labelSmall)
             }
             record.errorMessage?.takeIf { failed && it.isNotBlank() }?.let {
-                Text(it, color = Color(0xFFB33D3D), style = MaterialTheme.typography.bodySmall)
-            }
-            record.error?.takeIf { failed && it.isNotBlank() }?.let {
                 Text(it, color = Color(0xFFB33D3D), style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

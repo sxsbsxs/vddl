@@ -11,8 +11,8 @@ android {
         applicationId = "com.videofetch.pro"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.3.2"
+        versionCode = 5
+        versionName = "0.3.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
         manifestPlaceholders["usesCleartextTraffic"] = "true"
@@ -66,12 +66,12 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.dash)
     implementation(libs.media3.transformer)
-    implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.work.runtime.ktx)
 
     testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)

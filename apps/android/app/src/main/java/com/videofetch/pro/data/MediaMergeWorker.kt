@@ -30,6 +30,7 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import java.io.File
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -157,10 +158,15 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
     }
 
     private fun requireSafeHttpsUrl(value: String) {
-        val uri = android.net.Uri.parse(value)
-        require(uri.scheme.equals("https", true) && !uri.host.isNullOrBlank() && uri.userInfo == null) {
-            "Only safe HTTPS URLs are accepted"
-        }
+        val url = value.toHttpUrlOrNull()
+            ?: throw IllegalArgumentException("Invalid media URL")
+        val host = url.host
+        val trustedMediaHost = host.endsWith(".bilivideo.com") || host == "bilivideo.com" ||
+            host.endsWith(".bilivideo.cn") || host == "bilivideo.cn"
+        val trustedReferer = host == "www.bilibili.com"
+        require(url.isHttps && url.port == 443 && url.username.isEmpty() && url.password.isEmpty() &&
+            (trustedMediaHost || trustedReferer)
+        ) { "Only provider-approved HTTPS hosts are accepted" }
     }
 
     private fun safeFileName(value: String): String {
