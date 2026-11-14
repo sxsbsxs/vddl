@@ -30,14 +30,16 @@ data class LocalMediaFormat(
     val codec: String? = null,
     val dynamicRange: String? = null,
     val audioLabel: String? = null,
-    val referer: String? = null
+    val referer: String? = null,
+    val audioUrl: String? = null
 ) {
     fun toDownloadable(): LocalMediaResolution.Available = LocalMediaResolution.Available(
         downloadUrl = downloadUrl,
         fileName = fileName,
         mimeType = mimeType,
         qualityLabel = label,
-        referer = referer
+        referer = referer,
+        audioUrl = audioUrl
     )
 
     fun details(): String = listOfNotNull(
@@ -72,7 +74,8 @@ sealed interface LocalMediaResolution {
         val fileName: String,
         val mimeType: String,
         val qualityLabel: String,
-        val referer: String? = null
+        val referer: String? = null,
+        val audioUrl: String? = null
     ) : LocalMediaResolution
 
     data class Unsupported(val reason: String) : LocalMediaResolution

@@ -54,6 +54,7 @@ import com.videofetch.pro.data.LocalMediaResolution
 import com.videofetch.pro.data.VideoQualityPreference
 import com.videofetch.pro.data.VideoQualityPreferenceStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -439,7 +440,12 @@ private fun DownloadsScreen(downloadManager: LocalDownloadManager, onBack: () ->
     var refreshKey by remember { mutableIntStateOf(0) }
     var filter by rememberSaveable { mutableStateOf("all") }
     var actionMessage by remember { mutableStateOf("") }
-    LaunchedEffect(refreshKey) { records = withContext(Dispatchers.IO) { downloadManager.list() } }
+    LaunchedEffect(refreshKey) {
+        while (true) {
+            records = withContext(Dispatchers.IO) { downloadManager.list() }
+            delay(1000)
+        }
+    }
 
     val active = records.count { it.status == DownloadManager.STATUS_PENDING || it.status == DownloadManager.STATUS_RUNNING || it.status == DownloadManager.STATUS_PAUSED }
     val done = records.count { it.status == DownloadManager.STATUS_SUCCESSFUL }
@@ -472,7 +478,7 @@ private fun DownloadsScreen(downloadManager: LocalDownloadManager, onBack: () ->
                     DownloadCard(
                         record = record,
                         onOpen = {
-                            val uri = downloadManager.uriFor(record.id)
+                            val uri = downloadManager.uriFor(record)
                             if (uri != null) {
                                 val intent = Intent(Intent.ACTION_VIEW).apply {
                                     setDataAndType(uri, "video/*")
@@ -482,7 +488,7 @@ private fun DownloadsScreen(downloadManager: LocalDownloadManager, onBack: () ->
                             }
                         },
                         onRemove = {
-                            val removed = downloadManager.remove(record.id)
+                            val removed = downloadManager.remove(record)
                             actionMessage = if (removed) context.getString(R.string.download_removed) else context.getString(R.string.download_remove_failed)
                             refreshKey++
                         }
@@ -520,6 +526,9 @@ private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemo
                 Text(stringResource(R.string.download_preparing), color = Muted, style = MaterialTheme.typography.labelSmall)
             } else if (done) {
                 Text(stringResource(R.string.download_complete_hint), color = Muted, style = MaterialTheme.typography.labelSmall)
+            }
+            record.error?.takeIf { failed && it.isNotBlank() }?.let {
+                Text(it, color = Color(0xFFB33D3D), style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (done) {

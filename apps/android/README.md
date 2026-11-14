@@ -16,10 +16,10 @@ gradle -p apps/android assembleDebug
 gradle -p apps/android testDebugUnitTest
 ```
 
-## Platform integrations (0.3.0)
-- **Bilibili:** public video metadata and a single progressive MP4 URL when the provider API returns one. DASH-separated audio/video and multi-segment responses are not exposed as a fake single-file download. Optional local Cookie profile: provider ID `bilibili`, exact host `api.bilibili.com`.
+## Platform integrations (0.3.2)
+- **Bilibili:** provider-returned formats are shown, including separate DASH video/audio streams. Split streams download in a persistent foreground-capable WorkManager task and are muxed into one MP4 with Android MediaExtractor/MediaMuxer. Only provider-returned HTTPS CDN URLs on `*.bilivideo.com` / `*.bilivideo.cn` are accepted. Single progressive MP4 uses Android DownloadManager. Legacy multi-segment DURL and device-unsupported codecs fail explicitly rather than producing corrupt files. Optional local Cookie is only sent to `api.bilibili.com`.
 - **YouTube:** public metadata preview through the oEmbed endpoint. The official YouTube Data API exposes video metadata, not a general video-file download endpoint. No stream URL is fabricated and platform access controls are not bypassed.
-- **Niconico:** public metadata and available quality labels via the guest watch API. An optional local `user_session` Cookie is used only with the logged-in watch API on `www.nicovideo.jp`. Actual file delivery requires a short-lived playback session and heartbeat; this version does not expose an unverified static download URL.
+- **Niconico:** public metadata and available quality labels via the guest watch API. An optional local `user_session` Cookie is used only with the logged-in watch API on `www.nicovideo.jp`. Actual file delivery still requires negotiated playback-session creation and heartbeat renewal; it remains metadata-only in this version.
 
 All requests are made directly from the Android device. Cookies are encrypted with AES-GCM using a key held by Android Keystore and are only attached to exact HTTPS hosts explicitly allow-listed by the matching adapter. Cookies are never sent to the VideoFetch Pro backend.
 
@@ -28,5 +28,7 @@ All requests are made directly from the Android device. Cookies are encrypted wi
 - Paste a URL from the system clipboard or receive shared links
 - Local quality preference; the actual formats are limited to what the provider returns for that video and account
 - Device-local Android DownloadManager records
+
+Split DASH downloads continue through WorkManager after process restarts. The merged MP4 is saved in the app-specific Downloads folder and opened using a scoped FileProvider URI.
 
 The API base URL for debug builds defaults to `http://10.0.2.2:8000/`. Release builds use the HTTPS placeholder configured in Gradle; set a production endpoint before distributing a release APK.

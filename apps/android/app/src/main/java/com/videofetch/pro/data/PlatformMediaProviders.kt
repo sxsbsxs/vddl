@@ -100,7 +100,7 @@ internal object PlatformMediaProviders {
                     addQueryParameter("avid", aid.toString())
                     addQueryParameter("cid", cid.toString())
                     addQueryParameter("qn", qn.toString())
-                    addQueryParameter("fnval", "0")
+                    addQueryParameter("fnval", "4048")
                     addQueryParameter("fourk", "1")
                 }
                 val playJson = runCatching {
@@ -108,30 +108,86 @@ internal object PlatformMediaProviders {
                 }.getOrNull()
                 if (playJson?.optInt("code", -1) == 0) {
                     val playData = playJson.optJSONObject("data")
-                    val durl = playData?.optJSONArray("durl")
-                    // DownloadManager cannot safely join multiple HTTP segments or mux DASH audio/video.
-                    if (durl?.length() == 1) {
-                        val item = durl.optJSONObject(0)
-                        val mediaUrl = item?.optString("url").orEmpty().toHttpUrlOrNull()
-                        val formatName = playData?.optString("format").orEmpty().lowercase()
-                        val mediaHost = mediaUrl?.host.orEmpty()
-                        val trustedCdn = mediaHost.endsWith(".bilivideo.com") ||
-                            mediaHost.endsWith(".bilivideo.cn")
-                        val isMp4 = formatName.contains("mp4") ||
-                            mediaUrl?.encodedPath?.endsWith(".mp4", true) == true
-                        if (mediaUrl != null && mediaUrl.isHttps && trustedCdn && isMp4) {
-                            val actualQn = playData?.optInt("quality", qn) ?: qn
-                            val height = bilibiliHeight(actualQn)
-                            val label = bilibiliQualityLabel(actualQn)
+                    val dash = playData?.optJSONObject("dash")
+                    val audioItems = dash?.optJSONArray("audio")
+                    val audioCandidates = buildList {
+                        for (index in 0 until (audioItems?.length() ?: 0)) {
+                            val item = audioItems?.optJSONObject(index) ?: continue
+                            val url = (item.optString("baseUrl").ifBlank { item.optString("base_url") })
+                                .toHttpUrlOrNull() ?: continue
+                            if (isTrustedBilibiliCdn(url.host) && url.isHttps) add(item to url.toString())
+                        }
+                    }
+                    val bestAudio = audioCandidates.maxByOrNull { (item, _) -> item.optInt("bandwidth", 0) }
+                    val videoItems = dash?.optJSONArray("video")
+                    if (bestAudio != null) {
+                        val audioItem = bestAudio.first
+                        val audioUrl = bestAudio.second
+                        val audioCodec = audioItem.optString("codecs")
+                            .takeIf { it.isNotBlank() && it != "null" }?.let(::friendlyCodec)
+                        val audioBitrate = audioItem.optInt("bandwidth", 0) / 1000
+                        val audioLabel = listOfNotNull(
+                            audioCodec,
+                            audioBitrate.takeIf { it > 0 }?.let { "${it}kbps" }
+                        ).joinToString(" ").ifBlank { "Platform audio" }
+                        for (index in 0 until (videoItems?.length() ?: 0)) {
+                            val item = videoItems?.optJSONObject(index) ?: continue
+                            val url = (item.optString("baseUrl").ifBlank { item.optString("base_url") })
+                                .toHttpUrlOrNull() ?: continue
+                            if (!url.isHttps || !isTrustedBilibiliCdn(url.host)) continue
+                            val qualityCode = item.optInt("id", 0)
+                            val height = item.optInt("height", 0).takeIf { it > 0 }
+                                ?: bilibiliHeight(qualityCode)
+                            if (preferredQuality.maxHeight != null && height > 0 &&
+                                height > preferredQuality.maxHeight
+                            ) continue
+                            val frameRate = item.optString("frameRate")
+                                .substringBefore('/').toDoubleOrNull()?.toInt()
+                            val codec = item.optString("codecs")
+                                .takeIf { it.isNotBlank() && it != "null" }?.let(::friendlyCodec)
+                            val label = buildString {
+                                append(if (height > 0) "${height}p" else bilibiliQualityLabel(qualityCode))
+                                if (frameRate != null && frameRate > 30) append(" · ${frameRate}fps")
+                            }
                             formats += LocalMediaFormat(
-                                id = "bili-$actualQn",
+                                id = "bili-dash-$qualityCode-$index",
                                 label = label,
-                                downloadUrl = mediaUrl.toString(),
+                                downloadUrl = url.toString(),
                                 fileName = "$title.mp4",
                                 mimeType = "video/mp4",
                                 height = height,
-                                referer = "https://www.bilibili.com/video/$bvid"
+                                frameRate = frameRate,
+                                codec = codec,
+                                audioLabel = audioLabel,
+                                referer = "https://www.bilibili.com/video/$bvid",
+                                audioUrl = audioUrl
                             )
+                        }
+                    }
+
+                    // Older responses may expose a single progressive MP4 instead of DASH.
+                    if (formats.isEmpty()) {
+                        val durl = playData?.optJSONArray("durl")
+                        if (durl?.length() == 1) {
+                            val item = durl.optJSONObject(0)
+                            val mediaUrl = item?.optString("url").orEmpty().toHttpUrlOrNull()
+                            val formatName = playData?.optString("format").orEmpty().lowercase()
+                            val isMp4 = formatName.contains("mp4") ||
+                                mediaUrl?.encodedPath?.endsWith(".mp4", true) == true
+                            if (mediaUrl != null && mediaUrl.isHttps &&
+                                isTrustedBilibiliCdn(mediaUrl.host) && isMp4
+                            ) {
+                                val actualQn = playData?.optInt("quality", qn) ?: qn
+                                formats += LocalMediaFormat(
+                                    id = "bili-$actualQn",
+                                    label = bilibiliQualityLabel(actualQn),
+                                    downloadUrl = mediaUrl.toString(),
+                                    fileName = "$title.mp4",
+                                    mimeType = "video/mp4",
+                                    height = bilibiliHeight(actualQn),
+                                    referer = "https://www.bilibili.com/video/$bvid"
+                                )
+                            }
                         }
                     }
                 }
@@ -147,7 +203,9 @@ internal object PlatformMediaProviders {
                     formats = formats
                 ),
                 providerId = providerId,
-                allowedHosts = allowedCookieHosts + formats.mapNotNull { it.downloadUrl.toHttpUrlOrNull()?.host }
+                allowedHosts = allowedCookieHosts + formats.flatMap { format ->
+                    listOfNotNull(format.downloadUrl.toHttpUrlOrNull()?.host, format.audioUrl?.toHttpUrlOrNull()?.host)
+                }
             )
         }
 
@@ -158,11 +216,23 @@ internal object PlatformMediaProviders {
             return url.newBuilder().scheme("https").build().toString()
         }
 
+        private fun isTrustedBilibiliCdn(host: String): Boolean =
+            host.endsWith(".bilivideo.com") || host.endsWith(".bilivideo.cn")
+
+        private fun friendlyCodec(value: String): String = when {
+            value.startsWith("avc", true) -> "H.264"
+            value.startsWith("hev", true) || value.startsWith("hvc", true) -> "H.265"
+            value.startsWith("av01", true) -> "AV1"
+            value.startsWith("mp4a", true) -> "AAC"
+            else -> value.substringBefore('.').take(16)
+        }
+
         private fun bilibiliQualityCode(preference: VideoQualityPreference): Int {
             val height = preference.maxHeight ?: 4320
             return when {
                 height >= 4320 -> 127
                 height >= 2160 -> 120
+                height >= 1440 -> 100
                 height >= 1080 -> 80
                 height >= 720 -> 64
                 height >= 480 -> 32
@@ -173,6 +243,7 @@ internal object PlatformMediaProviders {
         private fun bilibiliHeight(qn: Int): Int = when (qn) {
             127 -> 4320
             126, 125, 120 -> 2160
+            100 -> 1440
             116, 112, 80 -> 1080
             74, 64 -> 720
             32 -> 480
@@ -185,6 +256,7 @@ internal object PlatformMediaProviders {
             126 -> "2160p · Dolby Vision"
             125 -> "2160p · HDR"
             120 -> "2160p · 4K"
+            100 -> "1440p"
             116 -> "1080p · 60fps"
             112 -> "1080p+"
             80 -> "1080p"
