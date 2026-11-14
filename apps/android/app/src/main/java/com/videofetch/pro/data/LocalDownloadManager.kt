@@ -55,7 +55,7 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
             .put("referer", media.referer ?: JSONObject.NULL)
             .toString())
         val request = OneTimeWorkRequestBuilder<MediaMergeWorker>()
-            .setId(jobId)
+            .setId(UUID.fromString(jobId))
             .setInputData(workDataOf(MediaMergeWorker.KEY_JOB_ID to jobId.toString(), MediaMergeWorker.KEY_TITLE to media.fileName))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
