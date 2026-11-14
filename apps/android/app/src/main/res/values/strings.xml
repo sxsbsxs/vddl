@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">VideoFetch Pro</string>
+    <string name="tab_home">首页</string>
+    <string name="tab_tasks">任务</string>
+    <string name="tab_downloads">文件</string>
+    <string name="tab_settings">设置</string>
+    <string name="home_eyebrow">VIDEOFETCH PRO</string>
+    <string name="home_title">视频资源，一处管理</string>
+    <string name="home_subtitle">粘贴你拥有或获准下载的视频链接，查看处理任务和文件。</string>
+    <string name="link_label">视频链接</string>
+    <string name="link_placeholder">粘贴 HTTPS 视频分享链接</string>
+    <string name="paste_button">从剪贴板粘贴</string>
+    <string name="submit_button">检查链接</string>
+    <string name="rights_title">授权与安全</string>
+    <string name="rights_body">只处理你拥有或明确获准下载的内容。不会绕过 DRM、登录验证、付费墙或平台访问限制。</string>
+    <string name="share_hint">也可以从其他应用分享链接到 VideoFetch Pro。</string>
+    <string name="tasks_title">下载任务</string>
+    <string name="tasks_empty">暂时没有任务</string>
+    <string name="tasks_empty_body">创建经过授权的任务后，进度和状态会显示在这里。</string>
+    <string name="downloads_title">已处理文件</string>
+    <string name="downloads_empty">还没有可用文件</string>
+    <string name="downloads_empty_body">任务完成并获得可下载文件后，会显示在这里。</string>
+    <string name="settings_title">设置</string>
+    <string name="settings_server">API 服务地址</string>
+    <string name="settings_server_value">由构建配置提供</string>
+    <string name="settings_account">账号与安全</string>
+    <string name="settings_account_body">登录和个人 API 凭证正在接入。应用不会内置管理员密钥。</string>
+    <string name="settings_version">应用版本</string>
+    <string name="link_invalid">请输入有效的 HTTPS 链接。</string>
+    <string name="backend_pending">客户端已建立；账号认证和授权平台接入完成后才能提交任务。</string>
+    <string name="clipboard_empty">剪贴板没有可用的文本链接。</string>
+    <string name="clipboard_pasted">已粘贴剪贴板内容。</string>
+    <string name="status_unconnected">尚未连接账号</string>
+</resources>

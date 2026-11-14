@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">VideoFetch Pro</string>
+    <string name="tab_home">ホーム</string>
+    <string name="tab_tasks">タスク</string>
+    <string name="tab_downloads">ファイル</string>
+    <string name="tab_settings">設定</string>
+    <string name="home_eyebrow">VIDEOFETCH PRO</string>
+    <string name="home_title">メディアを一か所で管理</string>
+    <string name="home_subtitle">所有している、またはダウンロード許可のある動画リンクを貼り付け、処理状況とファイルを確認できます。</string>
+    <string name="link_label">動画リンク</string>
+    <string name="link_placeholder">HTTPS 動画共有リンクを貼り付け</string>
+    <string name="paste_button">クリップボードから貼り付け</string>
+    <string name="submit_button">リンクを確認</string>
+    <string name="rights_title">権限と安全性</string>
+    <string name="rights_body">所有している、または明示的なダウンロード許可のあるコンテンツのみ処理します。DRM、認証、ペイウォール、アクセス制限は回避しません。</string>
+    <string name="share_hint">他のアプリから VideoFetch Pro にリンクを共有することもできます。</string>
+    <string name="tasks_title">ダウンロードタスク</string>
+    <string name="tasks_empty">タスクはありません</string>
+    <string name="tasks_empty_body">許可されたタスクを作成すると、進行状況がここに表示されます。</string>
+    <string name="downloads_title">処理済みファイル</string>
+    <string name="downloads_empty">利用可能なファイルはありません</string>
+    <string name="downloads_empty_body">許可されたタスクが完了すると、ファイルがここに表示されます。</string>
+    <string name="settings_title">設定</string>
+    <string name="settings_server">API サーバー</string>
+    <string name="settings_server_value">ビルド設定で指定</string>
+    <string name="settings_account">アカウントとセキュリティ</string>
+    <string name="settings_account_body">ログインとユーザーごとの API 認証情報を実装中です。管理者キーをアプリに埋め込みません。</string>
+    <string name="settings_version">アプリのバージョン</string>
+    <string name="link_invalid">有効な HTTPS URL を入力してください。</string>
+    <string name="backend_pending">アプリの画面を用意しました。ログインと許可されたプロバイダー連携の完了後にタスク送信を有効にします。</string>
+    <string name="clipboard_empty">クリップボードに利用可能なリンクがありません。</string>
+    <string name="clipboard_pasted">クリップボードの内容を貼り付けました。</string>
+    <string name="status_unconnected">アカウント未接続</string>
+</resources>
