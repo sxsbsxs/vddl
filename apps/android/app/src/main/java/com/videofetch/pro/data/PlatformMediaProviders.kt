@@ -22,6 +22,11 @@ internal object PlatformMediaProviders {
         .followRedirects(true)
         .build()
 
+    private val authenticatedHttp = http.newBuilder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build()
+
     private const val USER_AGENT =
         "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"
 
@@ -356,13 +361,13 @@ internal object PlatformMediaProviders {
             .url(url)
             .header("User-Agent", USER_AGENT)
             .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,ja;q=0.7")
-        if (sessions != null && providerId != null) {
-            sessions.cookieHeaderFor(providerId, url, allowedHosts)?.let {
-                builder.header("Cookie", it)
-            }
-        }
+        val localCookie = if (sessions != null && providerId != null) {
+            sessions.cookieHeaderFor(providerId, url, allowedHosts)
+        } else null
+        localCookie?.let { builder.header("Cookie", it) }
         extraHeaders.forEach { (name, value) -> builder.header(name, value) }
-        http.newCall(builder.build()).execute().use { response ->
+        val requestClient = if (localCookie != null) authenticatedHttp else http
+        requestClient.newCall(builder.build()).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Provider request failed (HTTP ${response.code}).")
             val body = response.body?.string() ?: throw IOException("Provider returned an empty response.")
             return HttpResult(body, response.request.url.toString())
