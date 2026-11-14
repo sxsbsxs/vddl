@@ -11,8 +11,8 @@ android {
         applicationId = "com.videofetch.pro"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.3.4"
+        versionCode = 7
+        versionName = "0.3.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
         manifestPlaceholders["usesCleartextTraffic"] = "true"
