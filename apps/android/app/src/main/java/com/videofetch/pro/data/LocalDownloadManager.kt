@@ -278,7 +278,6 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
         DownloadManager.ERROR_INSUFFICIENT_SPACE -> "存储空间不足"
         DownloadManager.ERROR_TOO_MANY_REDIRECTS -> "服务器重定向次数过多"
         DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> "服务器拒绝了下载请求（HTTP 错误）"
-        DownloadManager.ERROR_BLOCKED -> "系统或网络策略阻止了下载"
         else -> if (reason in 400..599) "服务器返回 HTTP $reason" else "下载失败（错误代码 $reason）"
     }
 
