@@ -21,7 +21,7 @@ import org.json.JSONObject
 
 data class LocalDownloadRecord(
     val id: String, val title: String, val status: Int, val downloadedBytes: Long, val totalBytes: Long,
-    val progressPercent: Int? = null, val errorMessage: String? = null
+    val progressPercent: Int? = null, val errorMessage: String? = null, val canRetry: Boolean = false
 )
 
 class LocalDownloadManager(context: Context, private val sessions: EncryptedLocalSessionStore) {
@@ -95,7 +95,74 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
             .addRequestHeader("User-Agent", USER_AGENT)
         media.referer?.let { request.addRequestHeader("Referer", it) }
         sessions.cookieHeaderFor(providerId, media.downloadUrl, providerAllowedHosts)?.let { request.addRequestHeader("Cookie", it) }
-        return androidManager.enqueue(request)
+        val downloadId = androidManager.enqueue(request)
+        return try {
+            writeDirectSpec(downloadId, providerId, providerAllowedHosts, media)
+            downloadId
+        } catch (error: Throwable) {
+            androidManager.remove(downloadId)
+            throw error
+        }
+    }
+
+    private fun writeDirectSpec(
+        downloadId: Long,
+        providerId: String,
+        allowedHosts: Set<String>,
+        media: LocalMediaResolution.Available
+    ) {
+        val directory = File(appContext.filesDir, JOBS_DIRECTORY).apply { mkdirs() }
+        val spec = JSONObject()
+            .put("providerId", providerId)
+            .put("allowedHosts", JSONArray(allowedHosts.toList()))
+            .put("downloadUrl", media.downloadUrl)
+            .put("fileName", media.fileName)
+            .put("mimeType", media.mimeType)
+            .put("qualityLabel", media.qualityLabel)
+            .put("referer", media.referer ?: JSONObject.NULL)
+        val target = directSpecFile(downloadId)
+        val temporary = File(directory, "dm-$downloadId.tmp")
+        temporary.writeText(spec.toString())
+        if (target.exists() && !target.delete()) {
+            temporary.delete()
+            throw IllegalStateException("Could not update download retry data")
+        }
+        if (!temporary.renameTo(target)) {
+            temporary.copyTo(target, overwrite = true)
+            temporary.delete()
+        }
+    }
+
+    private fun directSpecFile(downloadId: Long) =
+        File(appContext.filesDir, "$JOBS_DIRECTORY/dm-$downloadId.json")
+
+    private fun retryDirect(downloadId: Long): String? {
+        val cursor = androidManager.query(DownloadManager.Query().setFilterById(downloadId)) ?: return null
+        val failed = cursor.use {
+            it.moveToFirst() && it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)) ==
+                DownloadManager.STATUS_FAILED
+        }
+        if (!failed) return null
+        val specFile = directSpecFile(downloadId)
+        if (!specFile.isFile) return null
+        return runCatching {
+            val spec = JSONObject(specFile.readText())
+            val hostsJson = spec.optJSONArray("allowedHosts") ?: JSONArray()
+            val allowedHosts = buildSet {
+                for (index in 0 until hostsJson.length()) hostsJson.optString(index)
+                    .takeIf { it.isNotBlank() }?.let(::add)
+            }
+            val providerId = spec.getString("providerId")
+            require(allowedHosts.isNotEmpty()) { "Download provider data is missing" }
+            val media = LocalMediaResolution.Available(
+                downloadUrl = spec.getString("downloadUrl"),
+                fileName = spec.optString("fileName", "videofetch-video.mp4"),
+                mimeType = spec.optString("mimeType", "video/mp4"),
+                qualityLabel = spec.optString("qualityLabel", "Video"),
+                referer = spec.optString("referer").takeIf { it.isNotBlank() && it != "null" }
+            )
+            "dm:${enqueueDirect(providerId, allowedHosts, media)}"
+        }.getOrNull()
     }
 
     fun list(): List<LocalDownloadRecord> {
@@ -103,12 +170,18 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
         androidManager.query(DownloadManager.Query())?.use { cursor ->
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_ID))
+                val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                val reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
+                val retryFile = directSpecFile(id)
+                if (status == DownloadManager.STATUS_SUCCESSFUL) retryFile.delete()
                 records += LocalDownloadRecord(
                     "dm:$id",
                     cursor.getString(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE)) ?: "Video",
-                    cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)),
+                    status,
                     cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)),
-                    cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                    cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)),
+                    errorMessage = if (status == DownloadManager.STATUS_FAILED) downloadFailureReason(reason) else null,
+                    canRetry = status == DownloadManager.STATUS_FAILED && retryFile.isFile
                 )
             }
         }
@@ -120,13 +193,16 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
                 WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> DownloadManager.STATUS_PENDING
                 WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> DownloadManager.STATUS_FAILED
             }
+            val jobId = info.tags.firstOrNull { it.startsWith("job:") }?.removePrefix("job:")
+            val retryFile = jobId?.let { File(appContext.filesDir, "$JOBS_DIRECTORY/$it.json") }
             records += LocalDownloadRecord(
                 "merge:${info.id}",
                 info.tags.firstOrNull { it.startsWith("title:") }?.removePrefix("title:") ?: "Video",
                 status, 0L, 0L,
                 info.progress.getInt(MediaMergeWorker.KEY_PROGRESS, 0)
                     .takeIf { status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING },
-                info.outputData.getString(MediaMergeWorker.KEY_ERROR)
+                info.outputData.getString(MediaMergeWorker.KEY_ERROR),
+                canRetry = status == DownloadManager.STATUS_FAILED && retryFile?.isFile == true
             )
         }
         return records
@@ -145,7 +221,9 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
     fun remove(id: String): Boolean {
         if (id.startsWith("dm:")) {
             val downloadId = id.removePrefix("dm:").toLongOrNull() ?: return false
-            return androidManager.remove(downloadId) > 0
+            val removed = androidManager.remove(downloadId) > 0
+            val metadataRemoved = directSpecFile(downloadId).delete()
+            return removed || metadataRemoved
         }
         if (!id.startsWith("merge:")) return false
         val uuid = runCatching { UUID.fromString(id.removePrefix("merge:")) }.getOrNull() ?: return false
@@ -159,6 +237,10 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
     }
 
     fun retry(id: String): String? {
+        if (id.startsWith("dm:")) {
+            val downloadId = id.removePrefix("dm:").toLongOrNull() ?: return null
+            return retryDirect(downloadId)
+        }
         if (!id.startsWith("merge:")) return null
         val oldId = runCatching { UUID.fromString(id.removePrefix("merge:")) }.getOrNull() ?: return null
         val oldInfo = runCatching { workManager.getWorkInfoById(oldId).get() }.getOrNull() ?: return null
@@ -185,6 +267,19 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
             newSpec.delete()
             null
         }
+    }
+
+    private fun downloadFailureReason(reason: Int): String = when (reason) {
+        DownloadManager.ERROR_CANNOT_RESUME -> "下载中断，当前文件无法续传；可以重试"
+        DownloadManager.ERROR_DEVICE_NOT_FOUND -> "找不到下载存储位置"
+        DownloadManager.ERROR_FILE_ALREADY_EXISTS -> "同名文件已存在"
+        DownloadManager.ERROR_FILE_ERROR -> "文件写入失败，请检查存储空间"
+        DownloadManager.ERROR_HTTP_DATA_ERROR -> "网络数据异常，请重试"
+        DownloadManager.ERROR_INSUFFICIENT_SPACE -> "存储空间不足"
+        DownloadManager.ERROR_TOO_MANY_REDIRECTS -> "服务器重定向次数过多"
+        DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> "服务器拒绝了下载请求（HTTP 错误）"
+        DownloadManager.ERROR_BLOCKED -> "系统或网络策略阻止了下载"
+        else -> if (reason in 400..599) "服务器返回 HTTP $reason" else "下载失败（错误代码 $reason）"
     }
 
     private fun readJobTitle(jobId: String): String =
