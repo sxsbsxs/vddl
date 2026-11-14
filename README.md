@@ -1,22 +1,23 @@
 # VideoFetch Pro
 
-A modular, multilingual platform for managing media files that users own or are explicitly authorized to download.
+VideoFetch Pro is an Android-first media workflow product for content users own or are explicitly authorized to download.
 
-## Current milestone
-The repository contains a Next.js multilingual web shell, FastAPI REST API, PostgreSQL task persistence, Alembic migrations, Redis/RQ worker, task status/SSE endpoints, and a Docker Compose development stack.
+## Product architecture
+- **Android client (primary user app):** native Kotlin + Jetpack Compose in [apps/android](apps/android).
+- **Admin web console:** Next.js + TypeScript in [apps/web](apps/web), reserved for operator and administrator workflows.
+- **Backend API:** Python + FastAPI in [services/api](services/api).
+- **Persistence and jobs:** PostgreSQL, SQLAlchemy, Alembic, Redis, and RQ.
+- **Deployment:** Docker Compose.
 
-**Provider integrations are not enabled.** The provider registry starts empty and task creation is rejected until a reviewed adapter explicitly supports authorized downloads. The project does not bypass DRM, authentication, signatures, paywalls, or other access controls.
+## Android app
+The Android app supports Chinese, English, and Japanese UI resources, clipboard paste, Android share-sheet link intake, and Home / Tasks / Files / Settings navigation. It defines a typed REST client for task endpoints. Task submission is not activated until per-user authentication and API credentials are available.
 
-## Stack
-- Web: Next.js, React, TypeScript, next-intl
-- API: Python, FastAPI, Pydantic, SQLAlchemy, Alembic
-- Database: PostgreSQL
-- Queue: Redis + RQ
-- Media: FFmpeg / FFprobe planned for authorized files
-- Deployment: Docker Compose
+See [Android build instructions](apps/android/README.md).
 
-## Quick start
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Set API_ACCESS_TOKEN before calling task endpoints.
+## Backend milestone
+PostgreSQL task persistence, initial migration, Redis/RQ worker process, task status and SSE endpoints, and basic URL validation are scaffolded.
+
+**Provider integrations are not enabled.** The registry starts empty and rejects task creation until a reviewed adapter explicitly supports authorized downloads. Public share links do not automatically grant download permission.
 
 ## Security
-Read [docs/SECURITY.md](docs/SECURITY.md). User accounts, per-user task ownership, DNS-rebinding-resistant outbound access, object storage, and production quotas remain required work.
+Read [docs/SECURITY.md](docs/SECURITY.md). Do not bypass DRM, authentication, signatures, paywalls, or platform access controls. Do not embed the shared backend bootstrap token in the Android app.
