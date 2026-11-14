@@ -61,6 +61,13 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.coil.compose)
 
+    implementation(libs.media3.common)
+    implementation(libs.media3.datasource)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.exoplayer.dash)
+    implementation(libs.media3.transformer)
+    implementation(libs.work.runtime.ktx)
+
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)

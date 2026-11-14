@@ -133,4 +133,6 @@
     <string name="cookie_auto_saved">%1$s を検出しました。Cookie を端末に安全に保存しました。</string>
     <string name="cookie_auto_detect_failed">判定できませんでした。Bilibili または Niconico の Cookie 全体を貼り付けてください。</string>
     <string name="cookie_simple_note">YouTube の公開動画プレビューに Cookie は不要です。Cookie はこの端末内に保存され、サーバーには送信されません。</string>
+    <string name="download_merging_notification">動画と音声をダウンロードして結合しています</string>
+    <string name="download_merging_progress">動画と音声を結合中 · %1$d%%</string>
 </resources>

@@ -518,7 +518,10 @@ private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemo
                     Text(downloadStatusText(record.status, context), color = Muted, style = MaterialTheme.typography.labelSmall)
                 }
             }
-            if (active && record.totalBytes > 0) {
+            if (active && record.progressPercent != null) {
+                LinearProgressIndicator(progress = { record.progressPercent.coerceIn(0, 100) / 100f }, modifier = Modifier.fillMaxWidth(), color = Violet, trackColor = Color(0xFFECECF4))
+                Text(stringResource(R.string.download_merging_progress, record.progressPercent), color = Muted, style = MaterialTheme.typography.labelSmall)
+            } else if (active && record.totalBytes > 0) {
                 LinearProgressIndicator(progress = { ratio }, modifier = Modifier.fillMaxWidth(), color = Violet, trackColor = Color(0xFFECECF4))
                 Text("%s / %s · %d%%".format(formatBytes(record.downloadedBytes), formatBytes(record.totalBytes), (ratio * 100).toInt()), color = Muted, style = MaterialTheme.typography.labelSmall)
             } else if (active) {
@@ -526,6 +529,9 @@ private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemo
                 Text(stringResource(R.string.download_preparing), color = Muted, style = MaterialTheme.typography.labelSmall)
             } else if (done) {
                 Text(stringResource(R.string.download_complete_hint), color = Muted, style = MaterialTheme.typography.labelSmall)
+            }
+            record.errorMessage?.takeIf { failed && it.isNotBlank() }?.let {
+                Text(it, color = Color(0xFFB33D3D), style = MaterialTheme.typography.bodySmall)
             }
             record.error?.takeIf { failed && it.isNotBlank() }?.let {
                 Text(it, color = Color(0xFFB33D3D), style = MaterialTheme.typography.bodySmall)
