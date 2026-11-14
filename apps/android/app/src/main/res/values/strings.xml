@@ -50,7 +50,7 @@
     <string name="local_session_save_success">本机 Cookie 已加密保存。</string>
     <string name="local_session_save_error">保存失败，请检查平台标识、域名和 Cookie 格式。</string>
     <string name="local_session_cleared">本机 Cookie 已删除。</string>
-    <string name="cookie_security_note">不要把 Cookie 发给任何人。Cookie 等同于账号会话凭证。当前还没有启用的平台适配器，保存的 Cookie 暂不会被用于请求。</string>
+    <string name="cookie_security_note">不要把 Cookie 发给任何人。它等同于账号会话凭证。B站：平台标识 bilibili，主机 api.bilibili.com；Niconico：平台标识 niconico，主机 www.nicovideo.jp。YouTube 公开视频信息无需 Cookie。Cookie 只在本机加密保存，并且只会发往适配器允许的精确 HTTPS 主机。</string>
     <string name="refresh_button">刷新</string>
     <string name="open_file_button">打开文件</string>
     <string name="local_download_location">下载暂存于 VideoFetch Pro 的本机应用文件目录，可在应用内打开。</string>

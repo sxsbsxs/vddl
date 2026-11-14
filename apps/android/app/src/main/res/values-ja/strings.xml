@@ -50,7 +50,7 @@
     <string name="local_session_save_success">Cookie を暗号化して端末に保存しました。</string>
     <string name="local_session_save_error">保存できません。プロバイダー ID、ホスト名、Cookie 形式を確認してください。</string>
     <string name="local_session_cleared">端末内の Cookie を削除しました。</string>
-    <string name="cookie_security_note">Cookie はアカウントセッション情報です。他人と共有しないでください。現在、プロバイダーアダプターは有効化されていないため、審査済みアダプター追加までは保存した Cookie はリクエストに使用されません。</string>
+    <string name="cookie_security_note">Cookie はアカウントセッション情報です。他人と共有しないでください。Bilibili：プロバイダー ID bilibili、ホスト api.bilibili.com。Niconico：プロバイダー ID niconico、ホスト www.nicovideo.jp。YouTube の公開動画情報には Cookie は不要です。Cookie は端末内で暗号化され、アダプターが許可した正確な HTTPS ホストにのみ送信されます。</string>
     <string name="refresh_button">更新</string>
     <string name="open_file_button">ファイルを開く</string>
     <string name="local_download_location">ダウンロードは端末内の VideoFetch Pro 専用フォルダーに保存され、この画面から開けます。</string>

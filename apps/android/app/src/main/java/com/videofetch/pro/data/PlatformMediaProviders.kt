@@ -63,7 +63,7 @@ internal object PlatformMediaProviders {
                 ?: return LocalMediaResolution.Unsupported("Cannot find a Bilibili BV/av video ID in this link.")
 
             val viewUrl = buildUrl("https://api.bilibili.com/x/web-interface/view") {
-                addQueryParameter(if (videoId.startsWith("av", true)) "aid" else "bvid", videoId.removePrefix("av"))
+                addQueryParameter(if (videoId.startsWith("av", true)) "aid" else "bvid", if (videoId.startsWith("av", true)) videoId.drop(2) else videoId)
             }
             val viewJson = JSONObject(
                 requestText(viewUrl, sessions, providerId, allowedCookieHosts).body
@@ -138,7 +138,7 @@ internal object PlatformMediaProviders {
             return LocalMediaResolution.Resolved(
                 video = LocalVideoMetadata(
                     title = title,
-                    coverUrl = data.optString("pic").takeIf { it.startsWith("https://") },
+                    coverUrl = secureBilibiliCover(data.optString("pic")),
                     uploader = owner,
                     durationSeconds = duration,
                     platformName = "Bilibili",
@@ -147,6 +147,13 @@ internal object PlatformMediaProviders {
                 providerId = providerId,
                 allowedHosts = allowedCookieHosts + formats.mapNotNull { it.downloadUrl.toHttpUrlOrNull()?.host }
             )
+        }
+
+        private fun secureBilibiliCover(value: String): String? {
+            val url = value.toHttpUrlOrNull() ?: return null
+            val host = url.host
+            if (host != "hdslb.com" && !host.endsWith(".hdslb.com")) return null
+            return url.newBuilder().scheme("https").build().toString()
         }
 
         private fun bilibiliQualityCode(preference: VideoQualityPreference): Int {

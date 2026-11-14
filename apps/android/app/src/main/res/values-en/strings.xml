@@ -50,7 +50,7 @@
     <string name="local_session_save_success">Cookie encrypted and saved on this device.</string>
     <string name="local_session_save_error">Could not save. Check the provider ID, hostname, and Cookie format.</string>
     <string name="local_session_cleared">Local Cookie deleted.</string>
-    <string name="cookie_security_note">Never share your Cookie. It is an account session credential. No provider adapters are enabled yet, so this saved Cookie will not be used for requests until a reviewed adapter is added.</string>
+    <string name="cookie_security_note">Never share your Cookie; it is an account session credential. Bilibili: provider ID bilibili, host api.bilibili.com. Niconico: provider ID niconico, host www.nicovideo.jp. Public YouTube metadata needs no Cookie. Cookies are encrypted on this device and sent only to an adapter-approved exact HTTPS host.</string>
     <string name="refresh_button">Refresh</string>
     <string name="open_file_button">Open file</string>
     <string name="local_download_location">Downloads are staged in the app-specific VideoFetch Pro folder on this device and can be opened from this screen.</string>
