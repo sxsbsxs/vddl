@@ -87,6 +87,9 @@ class LocalDownloadManager(
 
     fun uriFor(id: Long): Uri? = manager.getUriForDownloadedFile(id)
 
+    /** Removes an active task or deletes its completed app-local file. */
+    fun remove(id: Long): Boolean = manager.remove(id) > 0
+
     private fun safeFileName(value: String): String {
         val cleaned = value.replace(Regex("[^A-Za-z0-9._ -]"), "_").trim().take(120)
         return cleaned.takeIf { it.isNotBlank() && it != "." && it != ".." } ?: "videofetch-video.mp4"
