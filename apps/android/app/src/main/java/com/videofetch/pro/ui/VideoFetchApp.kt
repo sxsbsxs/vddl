@@ -542,14 +542,14 @@ private fun DownloadCard(record: LocalDownloadRecord, onOpen: () -> Unit, onRemo
                 if (done) {
                     Button(onClick = onOpen, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.open_file_button)) }
                 }
-                if (failed && record.id.startsWith("merge:")) {
+                if (failed && record.canRetry) {
                     OutlinedButton(onClick = onRetry, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
                         Icon(Icons.Filled.Refresh, contentDescription = null)
                         Spacer(Modifier.width(5.dp))
                         Text(stringResource(R.string.download_retry))
                     }
                 }
-                OutlinedButton(onClick = onRemove, modifier = Modifier.weight(if (done || (failed && record.id.startsWith("merge:"))) 0.8f else 1f), shape = RoundedCornerShape(12.dp)) {
+                OutlinedButton(onClick = onRemove, modifier = Modifier.weight(if (done || (failed && record.canRetry)) 0.8f else 1f), shape = RoundedCornerShape(12.dp)) {
                     Icon(Icons.Filled.Delete, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.remove_button))
