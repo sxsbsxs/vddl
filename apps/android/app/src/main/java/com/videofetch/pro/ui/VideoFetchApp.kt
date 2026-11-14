@@ -1,0 +1,234 @@
+package com.videofetch.pro.ui
+
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.videofetch.pro.BuildConfig
+import com.videofetch.pro.R
+import com.videofetch.pro.core.SourceUrlValidator
+import kotlinx.coroutines.launch
+
+private enum class AppTab { HOME, TASKS, DOWNLOADS, SETTINGS }
+private data class TabItem(val tab: AppTab, val labelRes: Int, val icon: ImageVector)
+
+@Composable
+fun VideoFetchApp(sharedText: String? = null) {
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.HOME) }
+    var sourceUrl by rememberSaveable { mutableStateOf(sharedText.orEmpty()) }
+    val context = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val tabs = listOf(
+        TabItem(AppTab.HOME, R.string.tab_home, Icons.Filled.Home),
+        TabItem(AppTab.TASKS, R.string.tab_tasks, Icons.Filled.History),
+        TabItem(AppTab.DOWNLOADS, R.string.tab_downloads, Icons.Filled.Download),
+        TabItem(AppTab.SETTINGS, R.string.tab_settings, Icons.Filled.Settings)
+    )
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(hostState = snackbar) },
+        bottomBar = {
+            NavigationBar {
+                tabs.forEach { item ->
+                    NavigationBarItem(
+                        selected = selectedTab == item.tab,
+                        onClick = { selectedTab = item.tab },
+                        icon = { Icon(item.icon, contentDescription = null) },
+                        label = { Text(stringResource(item.labelRes)) }
+                    )
+                }
+            }
+        }
+    ) { padding ->
+        Box(
+            Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)
+        ) {
+            when (selectedTab) {
+                AppTab.HOME -> HomeScreen(
+                    sourceUrl = sourceUrl,
+                    onSourceUrlChange = { sourceUrl = it },
+                    onPaste = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val pasted = clipboard.primaryClip?.takeIf { it.itemCount > 0 }
+                            ?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
+                        val message = if (pasted.isBlank()) R.string.clipboard_empty else R.string.clipboard_pasted
+                        if (pasted.isNotBlank()) sourceUrl = pasted
+                        scope.launch { snackbar.showSnackbar(context.getString(message)) }
+                    },
+                    onSubmit = {
+                        val message = if (SourceUrlValidator.isPotentiallyValid(sourceUrl))
+                            R.string.backend_pending else R.string.link_invalid
+                        scope.launch { snackbar.showSnackbar(context.getString(message)) }
+                    }
+                )
+                AppTab.TASKS -> EmptyStateScreen(
+                    stringResource(R.string.tasks_title),
+                    stringResource(R.string.tasks_empty),
+                    stringResource(R.string.tasks_empty_body),
+                    Icons.Filled.History
+                )
+                AppTab.DOWNLOADS -> EmptyStateScreen(
+                    stringResource(R.string.downloads_title),
+                    stringResource(R.string.downloads_empty),
+                    stringResource(R.string.downloads_empty_body),
+                    Icons.Filled.VideoLibrary
+                )
+                AppTab.SETTINGS -> SettingsScreen()
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeScreen(
+    sourceUrl: String,
+    onSourceUrlChange: (String) -> Unit,
+    onPaste: () -> Unit,
+    onSubmit: () -> Unit
+) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(Modifier.size(44.dp), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.primary) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.VideoLibrary, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(25.dp))
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("VideoFetch Pro", fontWeight = FontWeight.Bold, fontSize = 19.sp)
+                Text(stringResource(R.string.home_eyebrow), color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+            }
+            Spacer(Modifier.weight(1f))
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)) {
+                Text("BETA", Modifier.padding(horizontal = 12.dp, vertical = 7.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+        Text(stringResource(R.string.home_subtitle), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f))
+
+        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Link, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.link_label), fontWeight = FontWeight.SemiBold)
+                }
+                OutlinedTextField(
+                    value = sourceUrl,
+                    onValueChange = onSourceUrlChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(R.string.link_placeholder)) },
+                    minLines = 2,
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                OutlinedButton(onClick = onPaste, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
+                    Icon(Icons.Filled.ContentPaste, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.paste_button))
+                }
+                Button(onClick = onSubmit, enabled = sourceUrl.isNotBlank(), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
+                    Text(stringResource(R.string.submit_button), modifier = Modifier.padding(vertical = 4.dp))
+                }
+            }
+        }
+
+        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))) {
+            Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                Icon(Icons.Filled.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(stringResource(R.string.rights_title), fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.rights_body), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        Text(stringResource(R.string.share_hint), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun EmptyStateScreen(title: String, headline: String, body: String, icon: ImageVector) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(52.dp))
+        Surface(Modifier.size(76.dp).align(Alignment.CenterHorizontally), shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.09f)) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(34.dp))
+            }
+        }
+        Text(headline, Modifier.align(Alignment.CenterHorizontally), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(body, Modifier.align(Alignment.CenterHorizontally), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.62f))
+    }
+}
+
+@Composable
+private fun SettingsScreen() {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.settings_server), fontWeight = FontWeight.SemiBold)
+                Text(BuildConfig.API_BASE_URL, color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.settings_server_value), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
+        }
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.settings_account), fontWeight = FontWeight.SemiBold)
+                }
+                Text(stringResource(R.string.settings_account_body), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f))
+            }
+        }
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.settings_version), fontWeight = FontWeight.SemiBold)
+                Text("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f))
+                HorizontalDivider()
+                Text(stringResource(R.string.status_unconnected), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
