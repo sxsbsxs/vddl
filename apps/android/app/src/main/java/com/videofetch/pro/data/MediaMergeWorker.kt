@@ -55,6 +55,7 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
         val stem = baseName.removeSuffix(".mp4")
         val output = File(directory, "$stem-${jobId.take(8)}.mp4")
         val temp = File(directory, ".$jobId.partial.mp4")
+        var manifestFile: File? = null
         try {
             val spec = JSONObject(jobFile.readText())
             val urlsJson = spec.optJSONArray("videoUrls") ?: return failureAndClean(jobFile, "No video streams")
@@ -74,7 +75,6 @@ class MediaMergeWorker(appContext: Context, params: WorkerParameters) : Coroutin
                 manifestUrls.forEach(::requireSafeHttpsUrl)
             }
             referer?.let(::requireSafeHttpsUrl)
-            var manifestFile: File? = null
             val headers = buildMap {
                 put("User-Agent", USER_AGENT)
                 referer?.let { put("Referer", it) }
