@@ -166,6 +166,8 @@ class LocalDownloadManager(context: Context, private val sessions: EncryptedLoca
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
                 .addTag(MERGE_TAG)
+                .addTag("job:$newId")
+                .addTag("title:${safeFileName(title)}")
                 .build()
             workManager.enqueue(request)
             "merge:$newId"
